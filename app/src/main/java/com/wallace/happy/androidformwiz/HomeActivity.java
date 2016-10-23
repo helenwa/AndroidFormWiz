@@ -18,15 +18,21 @@ public class HomeActivity extends AppCompatActivity {
     tv.setText(stringFromJNI());*/
     }
 
-    /** Called when the user clicks the Send button */
-    public void sendMessage(View view) {
+    /** Called when the user clicks the New Form button */
+    public void goToNewFormActivity(View view) {
         Intent intent = new Intent(this, SelectFormTemplateActivity.class);
+/*      To Pass text/variables to new intent
         EditText editText = (EditText) findViewById(R.id.edit_message);
         String message = editText.getText().toString();
-        intent.putExtra(EXTRA_MESSAGE, message);
+        intent.putExtra(EXTRA_MESSAGE, message);*/
         startActivity(intent);
     }
-
+    /** Called when the user clicks the existing Form button */
+    public void goToFormActivity(View view) {
+        Intent intent = new Intent(this, SelectFormTemplateActivity.class);
+        //todo make screens for this way.
+        startActivity(intent);
+    }
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.

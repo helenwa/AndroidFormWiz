@@ -40,23 +40,26 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
     /**
     *   Called when Image selected from gallery or from camera to display on screen
      */
-    Bitmap bitmap;//choosen image
+    Bitmap bitmap;//chosen image
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if ((requestCode == PICK_IMAGE_REQUEST  || requestCode == REQUEST_IMAGE_CAPTURE)&& resultCode == RESULT_OK && data != null && data.getData() != null) {
-
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri uri = data.getData();
-
             try{
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-                // Log.d(TAG, String.valueOf(bitmap));
-
-                ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                imageView.setImageBitmap(bitmap);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+                ImageView imageView = (ImageView) findViewById(R.id.imageView);
+                imageView.setImageBitmap(bitmap);
+
+        }
+        else if (requestCode == REQUEST_IMAGE_CAPTURE && data != null && data.getExtras() != null){
+            Bundle extras = data.getExtras();
+            bitmap = (Bitmap) extras.get("data");
+            ImageView imageView = (ImageView) findViewById(R.id.imageView);
+            imageView.setImageBitmap(bitmap);
         }
     }
 
@@ -72,6 +75,18 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
+    public void processImageScreen(View view) {
+        if(bitmap!=null) {
+            Intent intent = new Intent(this, ProcessImageTemplateActivity.class);
+            //*      To Pass text/variables to new intent
+            intent.putExtra("Image", bitmap);
+            startActivity(intent);
+        }
+        else {
+            //todo show warning
+        }
+    }
+
 
 
 

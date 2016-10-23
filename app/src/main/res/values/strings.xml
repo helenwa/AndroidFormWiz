@@ -1,10 +1,11 @@
 <resources>
     <string name="app_name">AndroidFormWiz</string>
     <string name="edit_message">Write Text Please</string>
-    <string name="button_send">Send</string>
+    <string name="button_new">Create New Form Template</string>
+    <string name="button_existing">Work with existing Form</string>
     <string name="hello_world">Hello World!</string>
     <string name="button_create">Create New Template</string>
     <string name="button_use_camera">Camera</string>
     <string name="button_gallery">Gallery</string>
-
+    <string name="imageDescription">User Selected Image</string>
 </resources>
