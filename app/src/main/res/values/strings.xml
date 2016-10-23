@@ -3,4 +3,8 @@
     <string name="edit_message">Write Text Please</string>
     <string name="button_send">Send</string>
     <string name="hello_world">Hello World!</string>
+    <string name="button_create">Create New Template</string>
+    <string name="button_use_camera">Camera</string>
+    <string name="button_gallery">Gallery</string>
+
 </resources>

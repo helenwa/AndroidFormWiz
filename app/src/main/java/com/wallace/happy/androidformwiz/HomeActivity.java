@@ -1,19 +1,30 @@
 package com.wallace.happy.androidformwiz;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 public class HomeActivity extends AppCompatActivity {
-
+    public final static String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-
-    /*/ Example of a call to a native method
+        /*/ Example of a call to a native method
     TextView tv = (TextView) findViewById(R.id.sample_text);
     tv.setText(stringFromJNI());*/
+    }
+
+    /** Called when the user clicks the Send button */
+    public void sendMessage(View view) {
+        Intent intent = new Intent(this, SelectFormTemplateActivity.class);
+        EditText editText = (EditText) findViewById(R.id.edit_message);
+        String message = editText.getText().toString();
+        intent.putExtra(EXTRA_MESSAGE, message);
+        startActivity(intent);
     }
 
     /**
