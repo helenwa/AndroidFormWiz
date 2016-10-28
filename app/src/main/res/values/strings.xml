@@ -8,4 +8,10 @@
     <string name="button_use_camera">Camera</string>
     <string name="button_gallery">Gallery</string>
     <string name="imageDescription">User Selected Image</string>
+    <string-array name="form_array">
+        <item>Number</item>
+        <item>Text</item>
+        <item>Check</item>
+        <item>Delete</item>
+    </string-array>
 </resources>

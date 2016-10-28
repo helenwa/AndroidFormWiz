@@ -17,12 +17,12 @@
         <activity android:name=".HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity android:name=".SelectFormTemplateActivity" />
-        <activity android:name=".ProcessImageTemplateActivity"></activity>
+        <activity android:name=".ProcessImageTemplateActivity" />
+        <activity android:name=".EditFormTemplateActivity"></activity>
     </application>
 
 </manifest>
