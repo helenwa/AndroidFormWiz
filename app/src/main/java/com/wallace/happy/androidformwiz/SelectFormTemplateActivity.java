@@ -81,7 +81,7 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
         if(bitmap!=null) {
             Intent intent = new Intent(this, ProcessImageTemplateActivity.class);
             //*      To Pass text/variables to new intent
-            String imagePath = saveToInternalStorage(bitmap);
+            String imagePath = saveToInternalStorage(bitmap,"newTemplate.jpg");
             intent.putExtra(TEMP_REF, imagePath);
             //intent.putExtra("Image", bitmap);
             startActivity(intent);
@@ -92,12 +92,12 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
     }
 
     //saves image to file
-    private String saveToInternalStorage(Bitmap bitmapImage){
+    private String saveToInternalStorage(Bitmap bitmapImage, String name){
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         // path to /data/data/yourapp/app_data/imageDir
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         // Create imageDir
-        File myPath=new File(directory,"newTemplate.jpg");
+        File myPath=new File(directory,name);//"newTemplate.jpg");
 
         FileOutputStream fos = null;
         try {

@@ -33,7 +33,7 @@ public class ProcessImageTemplateActivity extends AppCompatActivity {
     private void loadImageFromStorageTOScreen(String path)
     {
         try {
-            String p=path;
+            p=path;
             File f=new File(path, "newTemplate.jpg");
             b = BitmapFactory.decodeStream(new FileInputStream(f));
             ImageView img=(ImageView)findViewById(R.id.imageView);

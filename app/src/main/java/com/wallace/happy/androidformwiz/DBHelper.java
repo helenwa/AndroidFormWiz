@@ -1,7 +1,9 @@
 package com.wallace.happy.androidformwiz;
  import java.util.ArrayList;
         import java.util.HashMap;
-        import android.content.ContentValues;
+ import java.util.Objects;
+
+ import android.content.ContentValues;
         import android.content.Context;
         import android.database.Cursor;
         import android.database.DatabaseUtils;
@@ -36,14 +38,14 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public boolean insertForm(String name, String imageSource)
+    public String insertForm(String name, String imageSource)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put("Name", name);
         contentValues.put("ImageSource", imageSource);
-        db.insert("Forms", null, contentValues);
-        return true;
+        long idLong = db.insert("Forms", null, contentValues);
+        return String.valueOf(idLong);
     }
 
     public Cursor getData(int id){
