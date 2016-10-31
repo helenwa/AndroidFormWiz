@@ -1,22 +1,30 @@
 package com.wallace.happy.androidformwiz;
 
 import android.content.Context;
+import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
+
 public class EditFormTemplateActivity extends AppCompatActivity {
 
+    public String templateReference;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_form_template);
         //load image
+        Intent intent = getIntent();
+        templateReference = intent.getStringExtra(TEMP_REF);
 
         //insert dropdowns as required
         LayoutInflater vi = getLayoutInflater();
@@ -36,7 +44,21 @@ public class EditFormTemplateActivity extends AppCompatActivity {
 
         // insert into main view
         ViewGroup insertPoint = (ViewGroup) findViewById(R.id.insert_point);
-        insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+    }
+
+    private DBHelper db = new DBHelper(this);
+
+    public void saveForm(View view){
+        /*
+        SQLiteDat abase formDB = openOrCreateDatabase("formDB",MODE_PRIVATE,null);
+        formDB.execSQL("CREATE TABLE IF NOT EXISTS Forms(ID int NOT NULL AUTO_INCREMENT,Name VARCHAR,ImageSource VARCHAR,PRIMARY KEY (ID));");
+        formDB.execSQL("INSERT INTO Forms(Name,ImageSource) VALUES('"+ nameString + "','" + templateReference + "');");
+        */
+        EditText mEdit = (EditText)findViewById(R.id.editText);
+        String nameString = mEdit.getText().toString();
+        db.insertForm  (nameString, templateReference);
+        //TODO save box variables in second table
     }
 }

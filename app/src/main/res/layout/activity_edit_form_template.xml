@@ -11,9 +11,29 @@
     tools:context="com.wallace.happy.androidformwiz.EditFormTemplateActivity">
     <GridLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/insert_point">
-
+        android:layout_height="wrap_content"
+        android:id="@+id/insert_point"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true">
     </GridLayout>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/button_save"
+        android:id="@+id/buttonSave"
+        android:onClick="saveForm"
+        android:layout_alignParentBottom="true" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="text"
+        android:text="@string/form_name"
+        android:ems="10"
+        android:id="@+id/editText"
+        android:layout_above="@+id/buttonSave"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

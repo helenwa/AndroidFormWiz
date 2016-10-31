@@ -16,6 +16,7 @@ public class HomeActivity extends AppCompatActivity {
         /*/ Example of a call to a native method
     TextView tv = (TextView) findViewById(R.id.sample_text);
     tv.setText(stringFromJNI());*/
+
     }
 
     /** Called when the user clicks the New Form button */
@@ -29,7 +30,7 @@ public class HomeActivity extends AppCompatActivity {
     }
     /** Called when the user clicks the existing Form button */
     public void goToFormActivity(View view) {
-        Intent intent = new Intent(this, SelectFormTemplateActivity.class);
+        Intent intent = new Intent(this, SelectWorkingFormActivity.class);
         //todo make screens for this way.
         startActivity(intent);
     }
