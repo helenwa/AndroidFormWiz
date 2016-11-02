@@ -89,11 +89,6 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     private DBHelper db = new DBHelper(this);
 
     public void saveForm(View view){
-        /*
-        SQLiteDat abase formDB = openOrCreateDatabase("formDB",MODE_PRIVATE,null);
-        formDB.execSQL("CREATE TABLE IF NOT EXISTS Forms(ID int NOT NULL AUTO_INCREMENT,Name VARCHAR,ImageSource VARCHAR,PRIMARY KEY (ID));");
-        formDB.execSQL("INSERT INTO Forms(Name,ImageSource) VALUES('"+ nameString + "','" + templateReference + "');");
-        */
         EditText mEdit = (EditText)findViewById(R.id.editText);
         String nameString = mEdit.getText().toString();
         String id = db.insertForm  (nameString, templateReference);
@@ -139,8 +134,9 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // path to /data/data/yourapp/app_data/imageDir
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         // Create imageDir
-        File myPath=new File(directory,name);//"newTemplate.jpg");
-
+        File myPath=new File(directory,name + ".jpg");//"newTemplate.jpg");
+        String text = directory.getAbsolutePath() + name ;
+        Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(myPath);

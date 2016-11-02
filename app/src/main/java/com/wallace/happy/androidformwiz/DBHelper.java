@@ -48,7 +48,7 @@ public class DBHelper extends SQLiteOpenHelper {
         return String.valueOf(idLong);
     }
 
-    public Cursor getData(int id){
+    public Cursor getData(Long id){//was int
         SQLiteDatabase db = this.getReadableDatabase();
         return  db.rawQuery( "select * from Forms where id="+id+"", null );
     }
