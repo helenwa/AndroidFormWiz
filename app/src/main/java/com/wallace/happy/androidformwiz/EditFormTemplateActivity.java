@@ -2,12 +2,15 @@ package com.wallace.happy.androidformwiz;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +19,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -95,8 +99,39 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         String id = db.insertForm  (nameString, templateReference);
         saveToInternalStorage(b, id);
         //TODO save box variables in second table
+        //toast
+        CharSequence text = "Form Saved";
+        Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        goHome();
+    }
+    //go to homeScreen
+    private void goHome(){
+
+        Intent intent = new Intent(this , HomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)  {
+        if (Integer.parseInt(android.os.Build.VERSION.SDK) > 5
+                && keyCode == KeyEvent.KEYCODE_BACK
+                && event.getRepeatCount() == 0) {
+            onBackPressed();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+    @Override
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setMessage("Abandon Form?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        goHome();
+                    }})
+                .setNegativeButton(android.R.string.no, null).show();
+    }
 
     //saves image to file
     private String saveToInternalStorage(Bitmap bitmapImage, String name){

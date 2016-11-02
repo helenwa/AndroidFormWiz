@@ -16,4 +16,5 @@
     </string-array>
     <string name="button_save">Save</string>
     <string name="form_name">Form Name</string>
+    <string name="processing">processing image</string>
 </resources>
