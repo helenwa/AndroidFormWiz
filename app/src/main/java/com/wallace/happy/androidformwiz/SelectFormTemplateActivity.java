@@ -79,6 +79,8 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
+
+
     public void processImageScreen(View view) {
         if(bitmap!=null) {
             Intent intent = new Intent(this, ProcessImageTemplateActivity.class);

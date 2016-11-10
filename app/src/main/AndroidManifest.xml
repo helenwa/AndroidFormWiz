@@ -25,7 +25,8 @@
         <activity android:name=".ProcessImageTemplateActivity" />
         <activity android:name=".EditFormTemplateActivity" />
         <activity android:name=".SelectWorkingFormActivity" />
-        <activity android:name=".FormDetailsActivity"></activity>
+        <activity android:name=".FormDetailsActivity" />
+        <activity android:name=".CaptureFormActivity"></activity>
     </application>
 
 </manifest>
