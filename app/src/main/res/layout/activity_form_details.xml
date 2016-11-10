@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/nameTextView"
-        android:text="HEY" />
+        android:text="" />
     <ImageView
         android:contentDescription="@string/imageDescription2"
         android:layout_width="match_parent"
