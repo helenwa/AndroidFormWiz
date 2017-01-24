@@ -17,7 +17,7 @@ import java.io.FileNotFoundException;
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
 import static com.wallace.happy.androidformwiz.SelectWorkingFormActivity.FORM_REF;
 
-public class FormDetailsActivity extends AppCompatActivity {
+public class FormDetailsActivity extends AppCompatActivity  {
 
     private DBHelper db = new DBHelper(this);
     String name;

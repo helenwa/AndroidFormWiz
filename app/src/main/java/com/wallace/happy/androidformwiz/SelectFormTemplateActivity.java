@@ -83,11 +83,10 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
 
     public void processImageScreen(View view) {
         if(bitmap!=null) {
-            Intent intent = new Intent(this, ProcessImageTemplateActivity.class);
+            Intent intent = new Intent(this, EditFormTemplateActivity.class);
             //*      To Pass text/variables to new intent
             String imagePath = saveToInternalStorage(bitmap,"newTemplate.jpg");
             intent.putExtra(TEMP_REF, imagePath);
-            //intent.putExtra("Image", bitmap);
             startActivity(intent);
         }
         else {
@@ -121,10 +120,4 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
         }
         return directory.getAbsolutePath();
     }
-
-
-
-
-
-
 }

@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +23,7 @@ public class ProcessImageTemplateActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_process_image_template);
         Intent intent = getIntent();
+
         String templateReference = intent.getStringExtra(TEMP_REF);
         loadImageFromStorageTOScreen(templateReference);
         //todo image processing
@@ -51,6 +53,7 @@ public class ProcessImageTemplateActivity extends AppCompatActivity {
     private String processImage(Bitmap b){
         //TODO
         Handler mHandler = new Handler();
+
         mHandler.postDelayed(new Runnable() {
             public void run() {
                 editFormTemplateScreen();
@@ -69,4 +72,15 @@ public class ProcessImageTemplateActivity extends AppCompatActivity {
             //todo show warning
         }
     }
+
+    /**
+     * A native method that is implemented by the 'native-lib' native library,
+     * which is packaged with this application.
+     */
+    //public native String stringFromJNI();
+
+    // Used to load the 'native-lib' library on application startup.
+    //static {
+      //  System.loadLibrary("native-lib");
+    //}
 }

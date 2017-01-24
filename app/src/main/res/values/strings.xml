@@ -20,4 +20,5 @@
     <string name="processing">processing image</string>
     <string name="viewForms">View</string>
     <string name="newCompletedForm">New</string>
+    <string name="cpp">cpp</string>
 </resources>

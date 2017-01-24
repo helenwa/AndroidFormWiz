@@ -7,9 +7,11 @@ import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,17 +23,75 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
+import static java.lang.Math.abs;
+import static java.lang.Math.max;
+import static java.lang.Math.sqrt;
+
 
 public class EditFormTemplateActivity extends AppCompatActivity {
-
     public String templateReference;
+    private static final String TAG = "##########EditFormTe";
+
+    static final int CV_RETR_LIST_1 = 1;
+    static final int CV_CHAIN_APPROX_SIMPLE_1 = 2;
+    Mat tmp;
+    Mat processed;
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i("OpenCV", "OpenCV loaded successfully");
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
+
+    public void onResume()
+    {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+        } else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,10 +99,25 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         //load image
         Intent intent = getIntent();
         templateReference = intent.getStringExtra(TEMP_REF);
-        loadImageFromStorageTOScreen(templateReference);
-        //todo image processing
 
 
+
+
+
+
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+        } else {
+            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+
+        //
+        loadImageFromStorage(templateReference);
+        processImage();
+        //putImageOnScreen();
 
         //insert dropdowns as required
         LayoutInflater vi = getLayoutInflater();
@@ -63,26 +138,132 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // insert into main view
         ViewGroup insertPoint = (ViewGroup) findViewById(R.id.insert_point);
         insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
 
+    private void processImage() {
+        //convert
+        tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+        Utils.bitmapToMat(b, tmp);
+        //find rectangles
+        List<MatOfPoint> squares = findSquaures();
+
+        Log.v(TAG, squares.toString());
+        //draw rect on image
+        processed = drawSquares(squares,tmp);
+
+        //convert to bitmap
+        b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(processed, b);
+        putImageOnScreen();
+    }
+
+    List<MatOfPoint> findSquaures()
+    {
+// blur will enhance edge detection
+        Mat gray0= new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+        Imgproc.medianBlur(tmp, gray0, 9);
+        Mat gray = new Mat();
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        List<MatOfPoint> squares = new ArrayList<MatOfPoint>();
+        Imgproc.Canny(gray0, gray, 20, 80); //
+        Point pnt = new Point(-1,-1);
+        Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
+
+        Imgproc.findContours(gray, contours, new Mat(),CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
+
+        Log.v(TAG, contours.toString());
+
+        // Test contours
+        MatOfPoint2f approx = new MatOfPoint2f();
+
+        for (int i = 0; i < contours.size(); i++)
+        {
+            // approximate contour with accuracy proportional
+            // to the contour perimeter
+            MatOfPoint2f contour2f = new MatOfPoint2f( contours.get(i).toArray() );
+            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true)*0.1, true);
+            Log.v(TAG, i+ "  "+ approx.toArray().length + "  "+ abs(Imgproc.contourArea(approx)) + "  "+ Imgproc.isContourConvex(contours.get(i)));
+
+            // Note: absolute value of an area is used because
+            // area may be positive or negative - in accordance with the
+            // contour orientation
+            if (
+                    approx.toArray().length == 4 &&
+                            abs(Imgproc.contourArea(approx)) > 200
+                    )
+            {
+                double maxCosine = 0;
+
+                for (int j = 2; j < 5; j++)
+                {
+                    double cosine = abs(angle(approx.toArray()[j%4], approx.toArray()[j-2], approx.toArray()[j-1]));
+                    Log.v(TAG, i+ ",  " + cosine + ",  "+approx.toArray().toString());
+                    maxCosine = max(maxCosine, cosine);
+                }
+
+                if (maxCosine < 0.3)
+                    squares.add(contours.get(i));
+            }
+        }
+        return squares;
+    }
+
+    Mat drawSquares(List<MatOfPoint> squares, Mat image)
+    {
+        for ( int i = 0; i< squares.size(); i++ ) {
+            // draw contour
+            Scalar scal = new Scalar(255,0,0);
+            //(Mat image, List<MatOfPoint> contours, int contourIdx, Scalar color, int thickness)
+            Imgproc.drawContours(image, squares, i, scal, 2);
+
+            // draw bounding rect
+            Rect rect = Imgproc.boundingRect(squares.get(i));
+            scal=new Scalar(0,255,0);
+            Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
+
+            // draw rotated rect
+            MatOfPoint2f contour2f = new MatOfPoint2f( squares.get(i).toArray() );
+            RotatedRect minRect = Imgproc.minAreaRect(contour2f);
+            Point rect_points[] = new Point[4];
+            minRect.points( rect_points );
+            for ( int j = 0; j < 4; j++ ) {
+                scal= new Scalar(0,0,255);
+                Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
+            }
+        }
+        return image;
+    }
+
+    double angle( Point pt1, Point pt2, Point pt0 )
+    {
+        double dx1 = pt1.x - pt0.x;
+        double dy1 = pt1.y - pt0.y;
+        double dx2 = pt2.x - pt0.x;
+        double dy2 = pt2.y - pt0.y;
+        return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
     }
 
     Bitmap b;
     String p;
 
     //loads image from file to screen
-    private void loadImageFromStorageTOScreen(String path)
+    private void loadImageFromStorage(String path)
     {
         try {
             p=path;
             File f=new File(path, "newTemplate.jpg");
             b = BitmapFactory.decodeStream(new FileInputStream(f));
-            ImageView img=(ImageView)findViewById(R.id.imageView);
-            img.setImageBitmap(b);
+
         }
         catch (FileNotFoundException e)
         {
             e.printStackTrace();
         }
+    }
+
+    private void putImageOnScreen(){
+        ImageView img=(ImageView)findViewById(R.id.imageView);
+        img.setImageBitmap(b);
     }
 
 

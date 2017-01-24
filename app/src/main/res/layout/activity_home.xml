@@ -19,4 +19,14 @@
         android:text="@string/button_existing"
         android:id="@+id/button2"
         android:onClick="goToFormActivity" />
+
+    <TextView
+        android:id="@+id/sample_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/processing"
+        android:layout_below="@+id/button2"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="86dp" />
 </RelativeLayout>
