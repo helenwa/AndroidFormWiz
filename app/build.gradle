@@ -45,4 +45,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile project(path: ':tess-two')
     compile project(':openCVLibrary310')
+    compile 'com.google.android.gms:play-services-appindexing:8.4.0'
 }

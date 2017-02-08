@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +25,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
@@ -35,6 +42,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -50,9 +58,14 @@ import java.util.List;
 import java.util.ListIterator;
 
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
+import java.lang.*;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.sqrt;
+import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
+import static org.opencv.imgproc.Imgproc.getRectSubPix;
+import static org.opencv.imgproc.Imgproc.getRotationMatrix2D;
+import static org.opencv.imgproc.Imgproc.warpAffine;
 
 
 public class EditFormTemplateActivity extends AppCompatActivity {
@@ -68,20 +81,24 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
+                case LoaderCallbackInterface.SUCCESS: {
                     Log.i("OpenCV", "OpenCV loaded successfully");
-                } break;
-                default:
-                {
+                }
+                break;
+                default: {
                     super.onManagerConnected(status);
-                } break;
+                }
+                break;
             }
         }
     };
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
-    public void onResume()
-    {
+    public void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
@@ -99,11 +116,6 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         //load image
         Intent intent = getIntent();
         templateReference = intent.getStringExtra(TEMP_REF);
-
-
-
-
-
 
 
         if (!OpenCVLoader.initDebug()) {
@@ -138,6 +150,9 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // insert into main view
         ViewGroup insertPoint = (ViewGroup) findViewById(R.id.insert_point);
         insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     private void processImage() {
@@ -145,11 +160,12 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Utils.bitmapToMat(b, tmp);
         //find rectangles
-        List<MatOfPoint> squares = findSquaures();
 
-        Log.v(TAG, squares.toString());
+        List<MatOfPoint> squares = findSquaures(tmp);
+
+        //Log.v(TAG, squares.toString());
         //draw rect on image
-        processed = drawSquares(squares,tmp);
+        processed = drawSquares(squares, tmp);
 
         //convert to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
@@ -157,32 +173,30 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         putImageOnScreen();
     }
 
-    List<MatOfPoint> findSquaures()
-    {
+    List<MatOfPoint> findSquaures(Mat image) {
 // blur will enhance edge detection
-        Mat gray0= new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
-        Imgproc.medianBlur(tmp, gray0, 9);
+        Mat gray0 = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+        Imgproc.medianBlur(image, gray0, 9);
         Mat gray = new Mat();
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         List<MatOfPoint> squares = new ArrayList<MatOfPoint>();
         Imgproc.Canny(gray0, gray, 20, 80); //
-        Point pnt = new Point(-1,-1);
+        Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
 
-        Imgproc.findContours(gray, contours, new Mat(),CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
+        Imgproc.findContours(gray, contours, new Mat(), CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
 
-        Log.v(TAG, contours.toString());
+       // Log.v(TAG, contours.toString());
 
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
 
-        for (int i = 0; i < contours.size(); i++)
-        {
+        for (int i = 0; i < contours.size(); i++) {
             // approximate contour with accuracy proportional
             // to the contour perimeter
-            MatOfPoint2f contour2f = new MatOfPoint2f( contours.get(i).toArray() );
-            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true)*0.1, true);
-            Log.v(TAG, i+ "  "+ approx.toArray().length + "  "+ abs(Imgproc.contourArea(approx)) + "  "+ Imgproc.isContourConvex(contours.get(i)));
+            MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(i).toArray());
+            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.1, true);
+           // Log.v(TAG, i + "  " + approx.toArray().length + "  " + abs(Imgproc.contourArea(approx)) + "  " + Imgproc.isContourConvex(contours.get(i)));
 
             // Note: absolute value of an area is used because
             // area may be positive or negative - in accordance with the
@@ -190,14 +204,12 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             if (
                     approx.toArray().length == 4 &&
                             abs(Imgproc.contourArea(approx)) > 200
-                    )
-            {
+                    ) {
                 double maxCosine = 0;
 
-                for (int j = 2; j < 5; j++)
-                {
-                    double cosine = abs(angle(approx.toArray()[j%4], approx.toArray()[j-2], approx.toArray()[j-1]));
-                    Log.v(TAG, i+ ",  " + cosine + ",  "+approx.toArray().toString());
+                for (int j = 2; j < 5; j++) {
+                    double cosine = abs(angle(approx.toArray()[j % 4], approx.toArray()[j - 2], approx.toArray()[j - 1]));
+                    Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
                     maxCosine = max(maxCosine, cosine);
                 }
 
@@ -208,71 +220,101 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         return squares;
     }
 
-    Mat drawSquares(List<MatOfPoint> squares, Mat image)
-    {
-        for ( int i = 0; i< squares.size(); i++ ) {
+    Mat drawSquares(List<MatOfPoint> squares, Mat image) {
+        if (squares.size() == 0) {
+            return image;
+        }
+        Mat cropped = new Mat();
+        RotatedRect maxRect = Imgproc.minAreaRect(new MatOfPoint2f(squares.get(0).toArray()));
+        double maxArea = 0;
+        for (int i = 0; i < squares.size(); i++) {
             // draw contour
-            Scalar scal = new Scalar(255,0,0);
+            Scalar scal = new Scalar(255, 0, 0);
             //(Mat image, List<MatOfPoint> contours, int contourIdx, Scalar color, int thickness)
-            Imgproc.drawContours(image, squares, i, scal, 2);
+            //Imgproc.drawContours(image, squares, i, scal, 2);
 
             // draw bounding rect
             Rect rect = Imgproc.boundingRect(squares.get(i));
-            scal=new Scalar(0,255,0);
-            Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
+            scal = new Scalar(0, 255, 0);
+            //Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
 
             // draw rotated rect
-            MatOfPoint2f contour2f = new MatOfPoint2f( squares.get(i).toArray() );
+            MatOfPoint2f contour2f = new MatOfPoint2f(squares.get(i).toArray());
             RotatedRect minRect = Imgproc.minAreaRect(contour2f);
             Point rect_points[] = new Point[4];
-            minRect.points( rect_points );
-            for ( int j = 0; j < 4; j++ ) {
-                scal= new Scalar(0,0,255);
-                Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
+            minRect.points(rect_points);
+            for (int j = 0; j < 4; j++) {
+                scal = new Scalar(0, 0, 255);
+                //Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
+            }
+
+            double area = minRect.size.area();
+            if (area > maxArea) {
+                maxRect = minRect;
             }
         }
-        return image;
+
+        // rect is the RotatedRect (I got it from a contour...)
+        // matrices we'll use
+        Mat M = new Mat();
+        Mat rotated = new Mat();
+
+        // get angle and size from the bounding box
+        double angle = maxRect.angle;
+        Size rect_size = maxRect.size;
+        // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
+        if (maxRect.angle < -45.) {
+            angle += 90.0;
+            //swap(rect_size.width, rect_size.height);
+            rect_size = new Size(rect_size.height, rect_size.width);
+        }
+        // get the rotation matrix
+        M = getRotationMatrix2D(maxRect.center, angle, 1.0);
+        // perform the affine transformation
+        warpAffine(image, rotated, M, image.size(), INTER_CUBIC);
+        // crop the resulting image
+        double x = maxRect.center.x - (rect_size.width/2);
+        double y = maxRect.center.y - (rect_size.height/2);
+        Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
+        cropped = new Mat(rotated, roi);
+        return cropped;
     }
 
-    double angle( Point pt1, Point pt2, Point pt0 )
-    {
+    double angle(Point pt1, Point pt2, Point pt0) {
         double dx1 = pt1.x - pt0.x;
         double dy1 = pt1.y - pt0.y;
         double dx2 = pt2.x - pt0.x;
         double dy2 = pt2.y - pt0.y;
-        return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+        return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
     }
 
     Bitmap b;
     String p;
 
     //loads image from file to screen
-    private void loadImageFromStorage(String path)
-    {
+    private void loadImageFromStorage(String path) {
         try {
-            p=path;
-            File f=new File(path, "newTemplate.jpg");
+            p = path;
+            File f = new File(path, "newTemplate.jpg");
             b = BitmapFactory.decodeStream(new FileInputStream(f));
 
-        }
-        catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    private void putImageOnScreen(){
-        ImageView img=(ImageView)findViewById(R.id.imageView);
+    private void putImageOnScreen() {
+        ImageView img = (ImageView) findViewById(R.id.imageView);
         img.setImageBitmap(b);
     }
 
 
     private DBHelper db = new DBHelper(this);
 
-    public void saveForm(View view){
-        EditText mEdit = (EditText)findViewById(R.id.editText);
+    public void saveForm(View view) {
+        EditText mEdit = (EditText) findViewById(R.id.editText);
         String nameString = mEdit.getText().toString();
-        String id = db.insertForm  (nameString, templateReference);
+        String id = db.insertForm(nameString, templateReference);
         saveToInternalStorage(b, id);
         //TODO save box variables in second table
         //toast
@@ -280,17 +322,18 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
         goHome();
     }
-    //go to homeScreen
-    private void goHome(){
 
-        Intent intent = new Intent(this , HomeActivity.class);
+    //go to homeScreen
+    private void goHome() {
+
+        Intent intent = new Intent(this, HomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)  {
-        if (Integer.parseInt(android.os.Build.VERSION.SDK) > 5
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (Integer.parseInt(Build.VERSION.SDK) > 5
                 && keyCode == KeyEvent.KEYCODE_BACK
                 && event.getRepeatCount() == 0) {
             onBackPressed();
@@ -298,6 +341,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         }
         return super.onKeyDown(keyCode, event);
     }
+
     @Override
     public void onBackPressed() {
         new AlertDialog.Builder(this)
@@ -305,18 +349,19 @@ public class EditFormTemplateActivity extends AppCompatActivity {
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         goHome();
-                    }})
+                    }
+                })
                 .setNegativeButton(android.R.string.no, null).show();
     }
 
     //saves image to file
-    private String saveToInternalStorage(Bitmap bitmapImage, String name){
+    private String saveToInternalStorage(Bitmap bitmapImage, String name) {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         // path to /data/data/yourapp/app_data/imageDir
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         // Create imageDir
-        File myPath=new File(directory,name + ".jpg");//"newTemplate.jpg");
-        String text = directory.getAbsolutePath() + name ;
+        File myPath = new File(directory, name + ".jpg");//"newTemplate.jpg");
+        String text = directory.getAbsolutePath() + name;
         Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
         FileOutputStream fos = null;
         try {
@@ -334,4 +379,6 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         }
         return directory.getAbsolutePath();
     }
+
+
 }
