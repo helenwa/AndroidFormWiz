@@ -70,27 +70,29 @@ public class CaptureFormActivity extends AppCompatActivity {
             }
             ImageView imageView = (ImageView) findViewById(R.id.imageView);
             imageView.setImageBitmap(bitmap);
-           readOCR();
+            String recognizedText = readOCR(bitmap);
+            insertText(recognizedText);
         }
         else if (requestCode == REQUEST_IMAGE_CAPTURE && data != null && data.getExtras() != null){
             Bundle extras = data.getExtras();
             bitmap = (Bitmap) extras.get("data");
             ImageView imageView = (ImageView) findViewById(R.id.imageView);
             imageView.setImageBitmap(bitmap);
-            readOCR();
+            String recognizedText = readOCR(bitmap);
+            insertText(recognizedText);
         }
     }
 
 
-    protected void readOCR(){
+    String readOCR(Bitmap bitmap){
         TessBaseAPI tesseract = new TessBaseAPI();
-
         String lang = "eng";//for which the language data exists, usually "eng"
         tesseract.init(FileManager.STORAGE_PATH, lang);
         tesseract.setImage(bitmap);
         String recognizedText = tesseract.getUTF8Text();
         tesseract.end();
-        insertText(recognizedText);
+
+        return recognizedText;
     }
     protected void insertText(String text){
         TextView nameTextView = (TextView)findViewById(R.id.textView);

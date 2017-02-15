@@ -1,6 +1,7 @@
 package com.wallace.happy.androidformwiz;
  import java.util.ArrayList;
         import java.util.HashMap;
+ import java.util.List;
  import java.util.Objects;
 
  import android.content.ContentValues;
@@ -10,6 +11,8 @@ package com.wallace.happy.androidformwiz;
         import android.database.sqlite.SQLiteOpenHelper;
         import android.database.sqlite.SQLiteDatabase;
 
+ import org.opencv.core.MatOfPoint;
+
 public class DBHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "form.db";
@@ -17,6 +20,8 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String FORM_COLUMN_ID = "ID";
     public static final String FORM_COLUMN_NAME = "Name";
     public static final String FORM_COLUMN_IMAGESOURCE = "ImageSource";
+    public static final String SQUARE_TABLE_NAME = "Square";
+
     private HashMap hp;
 
     public DBHelper(Context context)
@@ -26,10 +31,21 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // TODO Auto-generated method stub
         db.execSQL(
-                "create table " + FORM_TABLE_NAME +
-                        "(id INTEGER PRIMARY KEY,Name VARCHAR,ImageSource VARCHAR);"
+                "create table " + FORM_TABLE_NAME + "(" +
+                        "id INTEGER PRIMARY KEY," +
+                        "Name VARCHAR," +
+                        "ImageSource VARCHAR);"
+        );
+        db.execSQL(
+                "create table " + SQUARE_TABLE_NAME +"(" +
+                        "id INTEGER PRIMARY KEY, " +
+                        "formId INTEGER," +
+                        "pt0 INTEGER, " +
+                        "pt1 INTEGER, " +
+                        "pt2 INTEGER, " +
+                        "pt3 INTEGER," +
+                        "FOREIGN KEY(formId) REFERENCES "+ FORM_TABLE_NAME +"(id)); "
         );
     }
     @Override
@@ -38,13 +54,13 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public String insertForm(String name, String imageSource)
+    public String insertForm(String name, String imageSource, List<MatOfPoint> squares )
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put("Name", name);
-        contentValues.put("ImageSource", imageSource);
-        long idLong = db.insert("Forms", null, contentValues);
+        contentValues.put(FORM_COLUMN_NAME, name);
+        contentValues.put(FORM_COLUMN_IMAGESOURCE, imageSource);
+        long idLong = db.insert(FORM_TABLE_NAME, null, contentValues);
         return String.valueOf(idLong);
     }
 

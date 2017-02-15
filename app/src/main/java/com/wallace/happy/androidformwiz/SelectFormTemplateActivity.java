@@ -2,11 +2,8 @@ package com.wallace.happy.androidformwiz;
 
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -17,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,7 +26,9 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
     public final static String TEMP_REF = "com.wallace.happy.androidformwiz.TEMP_REF";
 
     private static final String TAG = "SELECT_FORM";
-    private int PICK_IMAGE_REQUEST = 1;
+
+
+    private ImageHelper ih = new ImageHelper();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,11 +54,16 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
     *   Called when Image selected from gallery or from camera to display on screen
      */
     Bitmap bitmap;//chosen image
+    static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int REQUEST_TAKE_PHOTO = 1;
+    private int PICK_IMAGE_REQUEST = 1;
+    Uri photoURI;
+    String mCurrentPhotoPath;
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-
             Uri uri = data.getData();
             try{
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
@@ -70,11 +75,8 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             imageView.setImageBitmap(bitmap);
         }
         else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK){
-            Log.v(TAG, "HELLO");//mCurrentPhotoPath);
             File f = new File(mCurrentPhotoPath);
             Uri contentUri = Uri.fromFile(f);
-            Log.v(TAG, photoURI.toString());
-            Log.v(TAG, contentUri.toString());
             try{
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), contentUri);
 
@@ -83,26 +85,10 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             }
             ImageView imageView = (ImageView) findViewById(R.id.imageView);
             imageView.setImageBitmap(bitmap);
-            /*Bundle extras = data.getExtras();
-            bitmap = (Bitmap) extras.get("data");
-            ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            imageView.setImageBitmap(bitmap);
-            try{
-                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            ImageView img = (ImageView) findViewById(R.id.imageView);
-            img.setImageURI(imageUri);*/
         }
     }
 
-    static final int REQUEST_IMAGE_CAPTURE = 1;
 
-    static final int REQUEST_TAKE_PHOTO = 1;
-    Uri photoURI;
     /**
      *  Called when the user clicks the camera button
      * Opens Camera so they can capture an image
@@ -115,11 +101,7 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             File photoFile = null;
             try {
                 photoFile = createImageFile();
-            } catch (IOException ex) {
-                // Error occurred while creating the File
-
-            }
-            // Continue only if the File was successfully created
+            } catch (IOException ex) { }
             if (photoFile != null) {
                 photoURI = FileProvider.getUriForFile(this,
                         "com.wallace.happy.androidformwiz.fileprovider",
@@ -129,8 +111,6 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             }
         }
     }
-
-    String mCurrentPhotoPath;
 
     private File createImageFile() throws IOException {
         // Create an image file name
@@ -150,10 +130,15 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
 
     public void processImageScreen(View view) {
         if(bitmap!=null) {
+            //toast
+            CharSequence text = "working on it";
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+
             Intent intent = new Intent(this, EditFormTemplateActivity.class);
             //*      To Pass text/variables to new intent
             String imagePath = saveToInternalStorage(bitmap,"newTemplate.jpg");
             intent.putExtra(TEMP_REF, imagePath);
+
             startActivity(intent);
         }
         else {

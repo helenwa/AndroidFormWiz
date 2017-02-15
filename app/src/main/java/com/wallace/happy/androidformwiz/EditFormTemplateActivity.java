@@ -4,12 +4,9 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,12 +19,10 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
+
 import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -41,9 +36,7 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
@@ -52,25 +45,20 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
-import java.lang.*;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.sqrt;
 import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
-import static org.opencv.imgproc.Imgproc.getRectSubPix;
 import static org.opencv.imgproc.Imgproc.getRotationMatrix2D;
 import static org.opencv.imgproc.Imgproc.warpAffine;
 
 
 public class EditFormTemplateActivity extends AppCompatActivity {
     public String templateReference;
-    private static final String TAG = "##########EditFormTe";
+    private static final String TAG = "EditFormTemp";
 
     static final int CV_RETR_LIST_1 = 1;
     static final int CV_CHAIN_APPROX_SIMPLE_1 = 2;
@@ -82,7 +70,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         public void onManagerConnected(int status) {
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS: {
-                    Log.i("OpenCV", "OpenCV loaded successfully");
+                    //Log.i("OpenCV", "OpenCV loaded successfully");
                 }
                 break;
                 default: {
@@ -101,10 +89,10 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
-            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+           // Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         } else {
-            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+           // Log.d("OpenCV", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
@@ -119,17 +107,17 @@ public class EditFormTemplateActivity extends AppCompatActivity {
 
 
         if (!OpenCVLoader.initDebug()) {
-            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+           // Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         } else {
-            Log.d(TAG, "OpenCV library found inside package. Using it!");
+           // Log.d(TAG, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
 
         //
         loadImageFromStorage(templateReference);
         processImage();
-        //putImageOnScreen();
+        putImageOnScreen();
 
         //insert dropdowns as required
         LayoutInflater vi = getLayoutInflater();
@@ -155,22 +143,21 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
+    List<MatOfPoint> squares;
     private void processImage() {
         //convert
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Utils.bitmapToMat(b, tmp);
         //find rectangles
-
-        List<MatOfPoint> squares = findSquaures(tmp);
-
-        //Log.v(TAG, squares.toString());
+        squares = findSquaures(tmp);
         //draw rect on image
-        processed = drawSquares(squares, tmp);
-
-        //convert to bitmap
+        processed =rotAndCrop(squares, tmp);
+        squares = findSquaures(processed);
+        Log.v(TAG, "Hi h");
+        Log.v(TAG, squares.toString());
+        //convert Mat to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processed, b);
-        putImageOnScreen();
     }
 
     List<MatOfPoint> findSquaures(Mat image) {
@@ -209,7 +196,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
 
                 for (int j = 2; j < 5; j++) {
                     double cosine = abs(angle(approx.toArray()[j % 4], approx.toArray()[j - 2], approx.toArray()[j - 1]));
-                    Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
+                    //Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
                     maxCosine = max(maxCosine, cosine);
                 }
 
@@ -220,7 +207,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         return squares;
     }
 
-    Mat drawSquares(List<MatOfPoint> squares, Mat image) {
+    Mat rotAndCrop(List<MatOfPoint> squares, Mat image) {
         if (squares.size() == 0) {
             return image;
         }
@@ -229,13 +216,13 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         double maxArea = 0;
         for (int i = 0; i < squares.size(); i++) {
             // draw contour
-            Scalar scal = new Scalar(255, 0, 0);
+            //Scalar scal = new Scalar(255, 0, 0);
             //(Mat image, List<MatOfPoint> contours, int contourIdx, Scalar color, int thickness)
             //Imgproc.drawContours(image, squares, i, scal, 2);
 
             // draw bounding rect
-            Rect rect = Imgproc.boundingRect(squares.get(i));
-            scal = new Scalar(0, 255, 0);
+            //Rect rect = Imgproc.boundingRect(squares.get(i));
+            //scal = new Scalar(0, 255, 0);
             //Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
 
             // draw rotated rect
@@ -243,18 +230,18 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             RotatedRect minRect = Imgproc.minAreaRect(contour2f);
             Point rect_points[] = new Point[4];
             minRect.points(rect_points);
-            for (int j = 0; j < 4; j++) {
-                scal = new Scalar(0, 0, 255);
-                //Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
-            }
+            //for (int j = 0; j < 4; j++) {
+            //  scal = new Scalar(0, 0, 255);
+            //Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
+            //}
 
             double area = minRect.size.area();
             if (area > maxArea) {
                 maxRect = minRect;
             }
+
         }
 
-        // rect is the RotatedRect (I got it from a contour...)
         // matrices we'll use
         Mat M = new Mat();
         Mat rotated = new Mat();
@@ -314,7 +301,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     public void saveForm(View view) {
         EditText mEdit = (EditText) findViewById(R.id.editText);
         String nameString = mEdit.getText().toString();
-        String id = db.insertForm(nameString, templateReference);
+        String id = db.insertForm(nameString, templateReference, squares);
         saveToInternalStorage(b, id);
         //TODO save box variables in second table
         //toast
