@@ -12,6 +12,7 @@ package com.wallace.happy.androidformwiz;
         import android.database.sqlite.SQLiteDatabase;
 
  import org.opencv.core.MatOfPoint;
+ import org.opencv.core.RotatedRect;
 
 public class DBHelper extends SQLiteOpenHelper {
 
@@ -22,6 +23,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String FORM_COLUMN_IMAGESOURCE = "ImageSource";
     public static final String SQUARE_TABLE_NAME = "Square";
 
+    private ImageHelper ih = new ImageHelper();
     private HashMap hp;
 
     public DBHelper(Context context)
@@ -35,16 +37,19 @@ public class DBHelper extends SQLiteOpenHelper {
                 "create table " + FORM_TABLE_NAME + "(" +
                         "id INTEGER PRIMARY KEY," +
                         "Name VARCHAR," +
-                        "ImageSource VARCHAR);"
+                        "ImageSource VARCHAR," +
+                        "boxes INTEGER" +
+                        ");"
         );
         db.execSQL(
                 "create table " + SQUARE_TABLE_NAME +"(" +
                         "id INTEGER PRIMARY KEY, " +
                         "formId INTEGER," +
-                        "pt0 INTEGER, " +
-                        "pt1 INTEGER, " +
-                        "pt2 INTEGER, " +
-                        "pt3 INTEGER," +
+                        "pt0 REAL, " +
+                        "pt1 REAL, " +
+                        "pt2 REAL, " +
+                        "pt3 REAL," +
+                        "pt4 REAL," +
                         "FOREIGN KEY(formId) REFERENCES "+ FORM_TABLE_NAME +"(id)); "
         );
     }
@@ -54,15 +59,28 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public String insertForm(String name, String imageSource, List<MatOfPoint> squares )
+    public String insertForm(String name, String imageSource, List<RotatedRect> squares )
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(FORM_COLUMN_NAME, name);
         contentValues.put(FORM_COLUMN_IMAGESOURCE, imageSource);
+        contentValues.put("boxes", squares.size());
         long idLong = db.insert(FORM_TABLE_NAME, null, contentValues);
+        for(int i=0;i<squares.size();i++){
+            double rect[] = ih.toArray(squares.get(i));
+            ContentValues square = new ContentValues();
+            for(int j=0; j<5;j++) {
+                square.put("pt" + j , rect[j]);
+            }
+            square.put("formId", idLong);
+            long id = db.insert(SQUARE_TABLE_NAME, null, square);
+        }
+
+
         return String.valueOf(idLong);
     }
+    //public List<RotatedRect> getBoxes(){}
 
     public Cursor getData(Long id){//was int
         SQLiteDatabase db = this.getReadableDatabase();

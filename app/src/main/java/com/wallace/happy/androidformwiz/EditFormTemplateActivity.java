@@ -45,16 +45,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.sqrt;
+import static java.util.Collections.sort;
 import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
 import static org.opencv.imgproc.Imgproc.getRotationMatrix2D;
 import static org.opencv.imgproc.Imgproc.warpAffine;
-
 
 public class EditFormTemplateActivity extends AppCompatActivity {
     public String templateReference;
@@ -143,7 +144,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    List<MatOfPoint> squares;
+    List<RotatedRect> squares;
     private void processImage() {
         //convert
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
@@ -154,19 +155,25 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         processed =rotAndCrop(squares, tmp);
         squares = findSquaures(processed);
         Log.v(TAG, "Hi h");
+        for (int i = 0; i < squares.size(); i++) {
+            Log.v(TAG, i + "-" + squares.get(i).toString());
+            Point pt[] = new Point[4];
+            squares.get(i).points(pt);
+            Log.v(TAG, i + "-" + pt.toString());
+        }
         Log.v(TAG, squares.toString());
         //convert Mat to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processed, b);
     }
 
-    List<MatOfPoint> findSquaures(Mat image) {
+    List<RotatedRect> findSquaures(Mat image) {
 // blur will enhance edge detection
         Mat gray0 = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Imgproc.medianBlur(image, gray0, 9);
         Mat gray = new Mat();
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-        List<MatOfPoint> squares = new ArrayList<MatOfPoint>();
+        List<RotatedRect> squares = new ArrayList<RotatedRect>();
         Imgproc.Canny(gray0, gray, 20, 80); //
         Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
@@ -200,19 +207,24 @@ public class EditFormTemplateActivity extends AppCompatActivity {
                     maxCosine = max(maxCosine, cosine);
                 }
 
-                if (maxCosine < 0.3)
-                    squares.add(contours.get(i));
+                if (maxCosine < 0.3) {
+
+                    RotatedRect minRect = Imgproc.minAreaRect(contour2f);
+                    Point rect_points[] = new Point[4];
+                    minRect.points(rect_points);
+                    squares.add(minRect);
+                }
             }
         }
         return squares;
     }
 
-    Mat rotAndCrop(List<MatOfPoint> squares, Mat image) {
+    Mat rotAndCrop(List<RotatedRect> squares, Mat image) {
         if (squares.size() == 0) {
             return image;
         }
         Mat cropped = new Mat();
-        RotatedRect maxRect = Imgproc.minAreaRect(new MatOfPoint2f(squares.get(0).toArray()));
+        RotatedRect maxRect = squares.get(0);
         double maxArea = 0;
         for (int i = 0; i < squares.size(); i++) {
             // draw contour
@@ -226,20 +238,18 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             //Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
 
             // draw rotated rect
-            MatOfPoint2f contour2f = new MatOfPoint2f(squares.get(i).toArray());
-            RotatedRect minRect = Imgproc.minAreaRect(contour2f);
-            Point rect_points[] = new Point[4];
-            minRect.points(rect_points);
+            //MatOfPoint2f contour2f = new MatOfPoint2f(squares.get(i).toArray());
+            //RotatedRect minRect = Imgproc.minAreaRect(contour2f);
+            //Point rect_points[] = new Point[4];
+            //minRect.points(rect_points);
             //for (int j = 0; j < 4; j++) {
             //  scal = new Scalar(0, 0, 255);
             //Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
             //}
-
-            double area = minRect.size.area();
+            double area = squares.get(i).size.area();
             if (area > maxArea) {
-                maxRect = minRect;
+                maxRect = squares.get(i);
             }
-
         }
 
         // matrices we'll use
