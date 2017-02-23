@@ -80,7 +80,22 @@ public class DBHelper extends SQLiteOpenHelper {
 
         return String.valueOf(idLong);
     }
-    //public List<RotatedRect> getBoxes(){}
+    public List<RotatedRect> getBoxes(Long id, int b){
+        List<RotatedRect> r = new ArrayList<>(b);
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from " + SQUARE_TABLE_NAME + " where formId="+id+"", null );
+        res.moveToFirst();
+        while(!res.isAfterLast()){
+            double rect[] = new double[5];
+            for(int i=0;i<5;i++) {
+                rect[i] = res.getDouble(res.getColumnIndex("pt"+i));
+            }
+            r.add(new RotatedRect(rect));
+            res.moveToNext();
+        }
+        res.close();
+        return r;
+    }
 
     public Cursor getData(Long id){//was int
         SQLiteDatabase db = this.getReadableDatabase();

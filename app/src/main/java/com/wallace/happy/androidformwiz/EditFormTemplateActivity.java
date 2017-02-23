@@ -223,37 +223,17 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         if (squares.size() == 0) {
             return image;
         }
-        Mat cropped = new Mat();
+        Mat cropped;
         RotatedRect maxRect = squares.get(0);
         double maxArea = 0;
         for (int i = 0; i < squares.size(); i++) {
-            // draw contour
-            //Scalar scal = new Scalar(255, 0, 0);
-            //(Mat image, List<MatOfPoint> contours, int contourIdx, Scalar color, int thickness)
-            //Imgproc.drawContours(image, squares, i, scal, 2);
-
-            // draw bounding rect
-            //Rect rect = Imgproc.boundingRect(squares.get(i));
-            //scal = new Scalar(0, 255, 0);
-            //Imgproc.rectangle(image, rect.tl(), rect.br(), scal, 2, 8, 0);
-
-            // draw rotated rect
-            //MatOfPoint2f contour2f = new MatOfPoint2f(squares.get(i).toArray());
-            //RotatedRect minRect = Imgproc.minAreaRect(contour2f);
-            //Point rect_points[] = new Point[4];
-            //minRect.points(rect_points);
-            //for (int j = 0; j < 4; j++) {
-            //  scal = new Scalar(0, 0, 255);
-            //Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 1, 8, 0 ); // blue
-            //}
             double area = squares.get(i).size.area();
             if (area > maxArea) {
                 maxRect = squares.get(i);
             }
         }
-
         // matrices we'll use
-        Mat M = new Mat();
+        Mat M;
         Mat rotated = new Mat();
 
         // get angle and size from the bounding box
