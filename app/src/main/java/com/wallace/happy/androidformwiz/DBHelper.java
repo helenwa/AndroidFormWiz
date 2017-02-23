@@ -13,6 +13,7 @@ package com.wallace.happy.androidformwiz;
 
  import org.opencv.core.MatOfPoint;
  import org.opencv.core.RotatedRect;
+ import org.opencv.core.Size;
 
 public class DBHelper extends SQLiteOpenHelper {
 
@@ -50,6 +51,8 @@ public class DBHelper extends SQLiteOpenHelper {
                         "pt2 REAL, " +
                         "pt3 REAL," +
                         "pt4 REAL," +
+                        "X REAL," +
+                        "Y REAL," +
                         "FOREIGN KEY(formId) REFERENCES "+ FORM_TABLE_NAME +"(id)); "
         );
     }
@@ -59,13 +62,15 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public String insertForm(String name, String imageSource, List<RotatedRect> squares )
+    public String insertForm(String name, String imageSource, List<RotatedRect> squares, double w, double h)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(FORM_COLUMN_NAME, name);
         contentValues.put(FORM_COLUMN_IMAGESOURCE, imageSource);
         contentValues.put("boxes", squares.size());
+        contentValues.put("X", w);
+        contentValues.put("Y", h);
         long idLong = db.insert(FORM_TABLE_NAME, null, contentValues);
         for(int i=0;i<squares.size();i++){
             double rect[] = ih.toArray(squares.get(i));
@@ -137,5 +142,24 @@ public class DBHelper extends SQLiteOpenHelper {
         }
         res.close();
         return array_list;
+    }
+
+    public List<RotatedRect> getBigBoxes(long id, int nBoxes, double scaleFactor){
+        List<RotatedRect> r = new ArrayList<>(nBoxes);
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from " + SQUARE_TABLE_NAME + " where formId="+id+"", null );
+        res.moveToFirst();
+        while(!res.isAfterLast()){
+            double rect[] = new double[5];
+            for(int i=0;i<5;i++) {
+                rect[i] = res.getDouble(res.getColumnIndex("pt"+i));
+            }
+            rect[2]=rect[2]*scaleFactor;
+            rect[3]=rect[3]*scaleFactor;
+            r.add(new RotatedRect(rect));
+            res.moveToNext();
+        }
+        res.close();
+        return r;
     }
 }

@@ -291,7 +291,9 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     public void saveForm(View view) {
         EditText mEdit = (EditText) findViewById(R.id.editText);
         String nameString = mEdit.getText().toString();
-        String id = db.insertForm(nameString, templateReference, squares);
+        double w = b.getWidth();
+        double h = b.getHeight();
+        String id = db.insertForm(nameString, templateReference, squares, w, h);
         saveToInternalStorage(b, id);
         //TODO save box variables in second table
         //toast

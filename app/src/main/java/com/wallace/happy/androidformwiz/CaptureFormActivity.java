@@ -3,6 +3,7 @@ package com.wallace.happy.androidformwiz;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
@@ -20,8 +21,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.plug.utils.FileManager;
+
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.RotatedRect;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import static com.wallace.happy.androidformwiz.SelectWorkingFormActivity.FORM_REF;
 
@@ -70,7 +82,10 @@ public class CaptureFormActivity extends AppCompatActivity {
             }
             ImageView imageView = (ImageView) findViewById(R.id.imageView);
             imageView.setImageBitmap(bitmap);
-            String recognizedText = readOCR(bitmap);
+            String recognizedText="";
+            List<String> result = processForm(bitmap);
+            for(int i = 0; i<result.size();i++)
+                recognizedText+=result.get(i);
             insertText(recognizedText);
         }
         else if (requestCode == REQUEST_IMAGE_CAPTURE && data != null && data.getExtras() != null){
@@ -81,6 +96,47 @@ public class CaptureFormActivity extends AppCompatActivity {
             String recognizedText = readOCR(bitmap);
             insertText(recognizedText);
         }
+    }
+
+    List<RotatedRect> getInflatedBoxesFromdB(double scaleFactor){
+        //get details from DB
+        Cursor c = db.getData(id);
+        c.moveToFirst();
+        name = c.getString(c.getColumnIndex("Name"));
+        path = c.getString(c.getColumnIndex("ImageSource"));
+        int nBoxes = c.getInt(c.getColumnIndex("boxes"));
+        return  db.getBigBoxes(id, nBoxes,scaleFactor);
+    }
+
+    Size getSizeFromdB(){
+        //get details from DB
+        Cursor c = db.getData(id);
+        c.moveToFirst();
+        int x = c.getInt(c.getColumnIndex("X"));
+        int y = c.getInt(c.getColumnIndex("Y"));
+        return  new Size(x, y);
+    }
+
+    private ImageHelper ih = new ImageHelper();
+
+    private List<String> processForm(Bitmap bitmap) {
+        //convert to Mat
+        Mat tmp = new Mat(bitmap.getHeight(), bitmap.getWidth(), CvType.CV_8UC1);
+        Utils.bitmapToMat(bitmap, tmp);
+        //Get template bitmap size
+        Size dsize = getSizeFromdB();
+        Mat worker = new Mat((int)dsize.height, (int)dsize.width, CvType.CV_8UC1);
+        //scale to same as original
+        Imgproc.resize(tmp, worker, dsize);
+        //get box info
+        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.5);
+        List<String> result = new ArrayList<>(boxes.size());
+         //for each box crop and feed to OCR
+        for (int i = 0; i < boxes.size(); i++) {
+            tmp = ih.rotAndCrop(boxes.get(i),worker);
+            result.add(i,readOCR(Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.ARGB_8888)));
+        }
+        return result;
     }
 
 

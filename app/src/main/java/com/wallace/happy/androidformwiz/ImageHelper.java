@@ -62,5 +62,29 @@ public class ImageHelper     {
         return image;
     }
 
+    Mat rotAndCrop(RotatedRect maxRect, Mat image) {
+        // matrices we'll use
+        Mat M;
+        Mat rotated = new Mat();
+        // get angle and size from the bounding box
+        double angle = maxRect.angle;
+        Size rect_size = maxRect.size;
+        // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
+        if (maxRect.angle < -45.) {
+            angle += 90.0;
+            //swap(rect_size.width, rect_size.height);
+            rect_size = new Size(rect_size.height, rect_size.width);
+        }
+        // get the rotation matrix
+        M = getRotationMatrix2D(maxRect.center, angle, 1.0);
+        // perform the affine transformation
+        warpAffine(image, rotated, M, image.size(), INTER_CUBIC);
+        // crop the resulting image
+        double x = maxRect.center.x - (rect_size.width/2);
+        double y = maxRect.center.y - (rect_size.height/2);
+        Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
+        return  new Mat(rotated, roi);
+    }
+
 }
 
