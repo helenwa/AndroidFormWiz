@@ -133,7 +133,14 @@ public class CaptureFormActivity extends AppCompatActivity {
         List<String> result = new ArrayList<>(boxes.size());
          //for each box crop and feed to OCR
         for (int i = 0; i < boxes.size(); i++) {
+            //crop big
+            int h = (int)boxes.get(i).size.height;
+            int w = (int)boxes.get(i).size.width;
             tmp = ih.rotAndCrop(boxes.get(i),worker);
+            RotatedRect innerbox = ih.findSquaure(tmp,w,h);
+            tmp = ih.rotAndCrop(innerbox,tmp);
+
+            //read
             result.add(i,readOCR(Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.ARGB_8888)));
         }
         return result;

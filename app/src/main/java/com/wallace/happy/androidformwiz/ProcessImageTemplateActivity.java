@@ -26,7 +26,7 @@ public class ProcessImageTemplateActivity extends AppCompatActivity {
 
         String templateReference = intent.getStringExtra(TEMP_REF);
         loadImageFromStorageTOScreen(templateReference);
-        //todo image processing
+
     }
 
     Bitmap b;

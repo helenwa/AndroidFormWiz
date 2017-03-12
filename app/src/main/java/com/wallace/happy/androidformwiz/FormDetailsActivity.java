@@ -117,7 +117,6 @@ public class FormDetailsActivity extends AppCompatActivity {
             p = path;
             File f = new File(path, id + ".jpg");
             b = BitmapFactory.decodeStream(new FileInputStream(f));
-            //todo this is trowing issues
             Log.v(TAG, "h - " + b.getHeight() + " w - " + b.getWidth());
             tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
            Utils.bitmapToMat(b, tmp);

@@ -36,6 +36,7 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -65,6 +66,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     static final int CV_CHAIN_APPROX_SIMPLE_1 = 2;
     Mat tmp;
     Mat processed;
+    private ImageHelper ih = new ImageHelper();
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -150,36 +152,34 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Utils.bitmapToMat(b, tmp);
         //find rectangles
-        squares = findSquaures(tmp);
+        squares = findSquaures(tmp, false);
         //draw rect on image
         processed =rotAndCrop(squares, tmp);
-        squares = findSquaures(processed);
-        Log.v(TAG, "Hi h");
-        for (int i = 0; i < squares.size(); i++) {
-            Log.v(TAG, i + "-" + squares.get(i).toString());
-            Point pt[] = new Point[4];
-            squares.get(i).points(pt);
-            Log.v(TAG, i + "-" + pt.toString());
-        }
+        squares = findSquaures(processed, true);
+        processed = ih.drawSquares(squares, processed);
         Log.v(TAG, squares.toString());
         //convert Mat to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processed, b);
     }
 
-    List<RotatedRect> findSquaures(Mat image) {
-// blur will enhance edge detection
-        Mat gray0 = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
-        Imgproc.medianBlur(image, gray0, 9);
-        Mat gray = new Mat();
+    List<RotatedRect> findSquaures(Mat image, boolean stripLarge) {
+        Mat gray = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+        Imgproc.cvtColor(image, gray, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.medianBlur(gray, gray, 9);
+
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         List<RotatedRect> squares = new ArrayList<RotatedRect>();
-        Imgproc.Canny(gray0, gray, 20, 80); //
+        Imgproc.Canny(gray, gray, 20, 80); //
         Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
 
         Imgproc.findContours(gray, contours, new Mat(), CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
 
+        Imgproc.drawContours(
+                image, contours,
+                -1, // draw all contours
+                new Scalar(0, 0, 255, 0));
        // Log.v(TAG, contours.toString());
 
         // Test contours
@@ -189,34 +189,73 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             // approximate contour with accuracy proportional
             // to the contour perimeter
             MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(i).toArray());
-            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.1, true);
+            //Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.1, true);
+            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.005, true);
            // Log.v(TAG, i + "  " + approx.toArray().length + "  " + abs(Imgproc.contourArea(approx)) + "  " + Imgproc.isContourConvex(contours.get(i)));
 
             // Note: absolute value of an area is used because
             // area may be positive or negative - in accordance with the
             // contour orientation
             if (
-                    approx.toArray().length == 4 &&
-                            abs(Imgproc.contourArea(approx)) > 200
+                    approx.toArray().length >= 4 &&
+                            (stripLarge || abs(Imgproc.contourArea(approx)) > 2000) &&
+                            (!stripLarge || abs(Imgproc.contourArea(approx)) < 4000000)
                     ) {
-                double maxCosine = 0;
 
+                double maxCosine = 0;
                 for (int j = 2; j < 5; j++) {
                     double cosine = abs(angle(approx.toArray()[j % 4], approx.toArray()[j - 2], approx.toArray()[j - 1]));
                     //Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
                     maxCosine = max(maxCosine, cosine);
                 }
 
-                if (maxCosine < 0.3) {
+                if (maxCosine < 0.5) {//started at  0.3
 
                     RotatedRect minRect = Imgproc.minAreaRect(contour2f);
                     Point rect_points[] = new Point[4];
                     minRect.points(rect_points);
+
+
                     squares.add(minRect);
                 }
             }
         }
-        return squares;
+        if(stripLarge)
+            Log.v(TAG, "NS, " + squares.size());
+        return findUniqueSquaures(squares);
+    }
+
+    //remove duplicates
+    List<RotatedRect> findUniqueSquaures(List<RotatedRect> allFound){
+        List<RotatedRect> unique = new ArrayList<RotatedRect>();
+        //sort by size
+        Collections.sort(allFound);
+        unique.add(0,allFound.get(0));
+        for(int i=1;i<allFound.size();i++){
+            RotatedRect curr = allFound.get(i);
+            boolean u = isNew(curr, unique);
+            if(u) {
+                unique.add(curr);
+                Log.v(TAG, "MinRect-" + unique.size()+ "  "  + curr.angle);
+            }
+        }
+        return unique;
+    }
+
+    boolean isNew(RotatedRect r,List<RotatedRect> list){
+        double x = r.center.x;
+        double y = r.center.y;
+        for(int i=0;i<list.size();i++){
+            RotatedRect curr = list.get(i);
+            if(
+                    x > (curr.center.x - (curr.size.width/2)) &&
+                    x < (curr.center.x + (curr.size.width/2)) &&
+                    y > (curr.center.y - (curr.size.height/2)) &&
+                    y < (curr.center.y + (curr.size.height/2))
+                    )
+                return false;
+        }
+        return true;
     }
 
     Mat rotAndCrop(List<RotatedRect> squares, Mat image) {
@@ -239,6 +278,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // get angle and size from the bounding box
         double angle = maxRect.angle;
         Size rect_size = maxRect.size;
+        Log.v(TAG, rect_size.toString() + " " + rect_size.area());
         // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
         if (maxRect.angle < -45.) {
             angle += 90.0;
@@ -293,9 +333,9 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         String nameString = mEdit.getText().toString();
         double w = b.getWidth();
         double h = b.getHeight();
+        Log.v(TAG, w+ ", " + h);
         String id = db.insertForm(nameString, templateReference, squares, w, h);
         saveToInternalStorage(b, id);
-        //TODO save box variables in second table
         //toast
         CharSequence text = "Form Saved";
         Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();

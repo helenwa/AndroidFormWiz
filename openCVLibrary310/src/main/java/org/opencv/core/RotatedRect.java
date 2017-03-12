@@ -1,7 +1,7 @@
 package org.opencv.core;
 
 //javadoc:RotatedRect_
-public class RotatedRect {
+public class RotatedRect implements Comparable<RotatedRect>{
 
     public Point center;
     public Size size;
@@ -110,4 +110,17 @@ public class RotatedRect {
     public String toString() {
         return "{ " + center + " " + size + " * " + angle + " }";
     }
+
+    public int compareTo(RotatedRect compareR) {
+
+        int compareQuantity = (int)((RotatedRect) compareR).size.area();
+
+        //ascending order
+        return (int)this.size.area() - compareQuantity;
+
+        //descending order
+        //return compareQuantity - this.quantity;
+
+    };
+
 }

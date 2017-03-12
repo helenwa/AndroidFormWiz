@@ -69,8 +69,8 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put(FORM_COLUMN_NAME, name);
         contentValues.put(FORM_COLUMN_IMAGESOURCE, imageSource);
         contentValues.put("boxes", squares.size());
-        contentValues.put("X", w);
-        contentValues.put("Y", h);
+        //contentValues.put("X", w);
+        //contentValues.put("Y", h);
         long idLong = db.insert(FORM_TABLE_NAME, null, contentValues);
         for(int i=0;i<squares.size();i++){
             double rect[] = ih.toArray(squares.get(i));
