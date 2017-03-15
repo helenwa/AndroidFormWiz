@@ -45,15 +45,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import static com.wallace.happy.androidformwiz.SelectFormTemplateActivity.TEMP_REF;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.sqrt;
-import static java.util.Collections.sort;
 import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
 import static org.opencv.imgproc.Imgproc.getRotationMatrix2D;
 import static org.opencv.imgproc.Imgproc.warpAffine;
@@ -123,24 +122,24 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         putImageOnScreen();
 
         //insert dropdowns as required
-        LayoutInflater vi = getLayoutInflater();
-        View v = vi.inflate(R.layout.form_dropdown, null);
+       // LayoutInflater vi = getLayoutInflater();
+        //View v = vi.inflate(R.layout.form_dropdown, null);
 
         // fill in any details dynamically here
-        Spinner spinner = (Spinner) v.findViewById(R.id.form_spinner);
+        //Spinner spinner = (Spinner) v.findViewById(R.id.form_spinner);
 
         // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.form_array, android.R.layout.simple_spinner_item);
+        //ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+         //       R.array.form_array, android.R.layout.simple_spinner_item);
         // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        //adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
-        spinner.setAdapter(adapter);
+        //spinner.setAdapter(adapter);
         //spinner.setText("your text");
 
         // insert into main view
-        ViewGroup insertPoint = (ViewGroup) findViewById(R.id.insert_point);
-        insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+       // ViewGroup insertPoint = (ViewGroup) findViewById(R.id.insert_point);
+       // insertPoint.addView(v, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
@@ -152,12 +151,12 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Utils.bitmapToMat(b, tmp);
         //find rectangles
-        squares = findSquaures(tmp, false);
+        List<RotatedRect> squares = findSquaures(tmp, false);
         //draw rect on image
-        processed =rotAndCrop(squares, tmp);
-        squares = findSquaures(processed, true);
-        processed = ih.drawSquares(squares, processed);
-        Log.v(TAG, squares.toString());
+        processed = rotAndCrop(squares, tmp);
+        List<RotatedRect> boxes = findSquaures(processed, true);
+        processed = ih.drawSquares(boxes, processed);
+        Log.v(TAG, boxes.toString());
         //convert Mat to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processed, b);
@@ -168,8 +167,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         Imgproc.cvtColor(image, gray, Imgproc.COLOR_RGB2GRAY);
         Imgproc.medianBlur(gray, gray, 9);
 
-        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-        List<RotatedRect> squares = new ArrayList<RotatedRect>();
+        List<MatOfPoint> contours = new LinkedList<MatOfPoint>();
+        List<RotatedRect> squares = new LinkedList<RotatedRect>();
         Imgproc.Canny(gray, gray, 20, 80); //
         Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
@@ -196,10 +195,11 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             // Note: absolute value of an area is used because
             // area may be positive or negative - in accordance with the
             // contour orientation
+            double sz = abs(Imgproc.contourArea(approx));
             if (
                     approx.toArray().length >= 4 &&
-                            (stripLarge || abs(Imgproc.contourArea(approx)) > 2000) &&
-                            (!stripLarge || abs(Imgproc.contourArea(approx)) < 4000000)
+                            (stripLarge || sz > 2000 ) &&
+                            (!stripLarge || (sz < 4000000 && sz > 200))
                     ) {
 
                 double maxCosine = 0;
@@ -216,26 +216,28 @@ public class EditFormTemplateActivity extends AppCompatActivity {
                     minRect.points(rect_points);
 
 
-                    squares.add(minRect);
+                    squares.add(minRect.clone());
                 }
             }
         }
-        if(stripLarge)
+        if(stripLarge) {
             Log.v(TAG, "NS, " + squares.size());
-        return findUniqueSquaures(squares);
+            return findUniqueSquaures(squares);
+        }
+        return  squares;
     }
 
     //remove duplicates
     List<RotatedRect> findUniqueSquaures(List<RotatedRect> allFound){
-        List<RotatedRect> unique = new ArrayList<RotatedRect>();
+        List<RotatedRect> unique = new LinkedList<RotatedRect>();
         //sort by size
         Collections.sort(allFound);
-        unique.add(0,allFound.get(0));
+        unique.add(0,allFound.get(0).clone());
         for(int i=1;i<allFound.size();i++){
             RotatedRect curr = allFound.get(i);
             boolean u = isNew(curr, unique);
             if(u) {
-                unique.add(curr);
+                unique.add(curr.clone());
                 Log.v(TAG, "MinRect-" + unique.size()+ "  "  + curr.angle);
             }
         }
