@@ -79,6 +79,7 @@ public class SelectFormTemplateActivity extends AppCompatActivity {
             Uri contentUri = Uri.fromFile(f);
             try{
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), contentUri);
+                Log.d(TAG, "hH" + bitmap.getHeight());
 
             } catch (IOException e) {
                 e.printStackTrace();

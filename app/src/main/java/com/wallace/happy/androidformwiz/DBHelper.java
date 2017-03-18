@@ -39,7 +39,10 @@ public class DBHelper extends SQLiteOpenHelper {
                         "id INTEGER PRIMARY KEY," +
                         "Name VARCHAR," +
                         "ImageSource VARCHAR," +
+                        "X REAL," +
+                        "Y REAL," +
                         "boxes INTEGER" +
+
                         ");"
         );
         db.execSQL(
@@ -51,8 +54,7 @@ public class DBHelper extends SQLiteOpenHelper {
                         "pt2 REAL, " +
                         "pt3 REAL," +
                         "pt4 REAL," +
-                        "X REAL," +
-                        "Y REAL," +
+
                         "FOREIGN KEY(formId) REFERENCES "+ FORM_TABLE_NAME +"(id)); "
         );
     }
@@ -69,8 +71,8 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put(FORM_COLUMN_NAME, name);
         contentValues.put(FORM_COLUMN_IMAGESOURCE, imageSource);
         contentValues.put("boxes", squares.size());
-        //contentValues.put("X", w);
-        //contentValues.put("Y", h);
+        contentValues.put("X", w);
+        contentValues.put("Y", h);
         long idLong = db.insert(FORM_TABLE_NAME, null, contentValues);
         for(int i=0;i<squares.size();i++){
             double rect[] = ih.toArray(squares.get(i));

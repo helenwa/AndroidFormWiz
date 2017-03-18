@@ -145,7 +145,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    List<RotatedRect> squares;
+    List<RotatedRect> boxes;
     private void processImage() {
         //convert
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
@@ -154,7 +154,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         List<RotatedRect> squares = findSquaures(tmp, false);
         //draw rect on image
         processed = rotAndCrop(squares, tmp);
-        List<RotatedRect> boxes = findSquaures(processed, true);
+        boxes = findSquaures(processed, true);
         processed = ih.drawSquares(boxes, processed);
         Log.v(TAG, boxes.toString());
         //convert Mat to bitmap
@@ -336,7 +336,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         double w = b.getWidth();
         double h = b.getHeight();
         Log.v(TAG, w+ ", " + h);
-        String id = db.insertForm(nameString, templateReference, squares, w, h);
+        String id = db.insertForm(nameString, templateReference, boxes, w, h);
         saveToInternalStorage(b, id);
         //toast
         CharSequence text = "Form Saved";

@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
@@ -80,6 +81,7 @@ public class ImageHelper     {
         Size rect_size = maxRect.size;
         // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
         if (maxRect.angle < -45.) {
+            Log.v("ImgaeHelper", "swapping h and w");
             angle += 90.0;
             //swap(rect_size.width, rect_size.height);
             rect_size = new Size(rect_size.height, rect_size.width);
@@ -114,7 +116,7 @@ public class ImageHelper     {
             // approximate contour with accuracy proportional
             // to the contour perimeter
             MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(i).toArray());
-            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.1, true);
+            Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.005, true);
             // Log.v(TAG, i + "  " + approx.toArray().length + "  " + abs(Imgproc.contourArea(approx)) + "  " + Imgproc.isContourConvex(contours.get(i)));
 
             // Note: absolute value of an area is used because
@@ -132,7 +134,7 @@ public class ImageHelper     {
                     maxCosine = max(maxCosine, cosine);
                 }
 
-                if (maxCosine < 0.3) {
+                if (maxCosine < 0.5) {
 
                     RotatedRect minRect = Imgproc.minAreaRect(contour2f);
 
@@ -155,5 +157,7 @@ public class ImageHelper     {
         double dy2 = pt2.y - pt0.y;
         return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
     }
+
+
 }
 
