@@ -146,7 +146,7 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public List<RotatedRect> getBigBoxes(long id, int nBoxes, double scaleFactor){
+    public List<RotatedRect> getBigBoxes(long id, int nBoxes, double scaleFactorX, double scaleFactorY){
         List<RotatedRect> r = new ArrayList<>(nBoxes);
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor res =  db.rawQuery( "select * from " + SQUARE_TABLE_NAME + " where formId="+id+"", null );
@@ -156,8 +156,8 @@ public class DBHelper extends SQLiteOpenHelper {
             for(int i=0;i<5;i++) {
                 rect[i] = res.getDouble(res.getColumnIndex("pt"+i));
             }
-            rect[2]=rect[2]*scaleFactor;
-            rect[3]=rect[3]*scaleFactor;
+            rect[2]=rect[2]*scaleFactorX;
+            rect[3]=rect[3]*scaleFactorY;
             r.add(new RotatedRect(rect));
             res.moveToNext();
         }

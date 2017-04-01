@@ -198,8 +198,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             double sz = abs(Imgproc.contourArea(approx));
             if (
                     approx.toArray().length >= 4 &&
-                            (stripLarge || sz > 2000 ) &&
-                            (!stripLarge || (sz < 4000000 && sz > 200))
+                            (stripLarge || sz > 2000 ) && //big
+                            (!stripLarge || (sz < 4000000 && sz > 6000))//small
                     ) {
 
                 double maxCosine = 0;
@@ -280,7 +280,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // get angle and size from the bounding box
         double angle = maxRect.angle;
         Size rect_size = maxRect.size;
-        Log.v(TAG, rect_size.toString() + " " + rect_size.area());
+        Log.v(TAG, maxRect.toString());
         // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
         if (maxRect.angle < -45.) {
             angle += 90.0;
@@ -295,6 +295,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         double x = maxRect.center.x - (rect_size.width/2);
         double y = maxRect.center.y - (rect_size.height/2);
         Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
+        Log.v(TAG,roi.toString());
+        Log.v(TAG,rotated.size().toString());
         cropped = new Mat(rotated, roi);
         return cropped;
     }

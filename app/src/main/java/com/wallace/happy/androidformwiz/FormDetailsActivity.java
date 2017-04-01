@@ -99,7 +99,7 @@ public class FormDetailsActivity extends AppCompatActivity {
         Log.v(TAG, "boxes - " + boxes);
         loadImageFromStorageTOScreen(path, idString);
         TextView nameTextView = (TextView) findViewById(R.id.nameTextView);
-        nameTextView.setText(name + " : " + idString + "  :  " + path);
+        nameTextView.setText(name);
 
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -118,11 +118,11 @@ public class FormDetailsActivity extends AppCompatActivity {
             File f = new File(path, id + ".jpg");
             b = BitmapFactory.decodeStream(new FileInputStream(f));
             Log.v(TAG, "h - " + b.getHeight() + " w - " + b.getWidth());
-            tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+            /*tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
            Utils.bitmapToMat(b, tmp);
            //tmp = ih.drawSquares(boxes, tmp);
 
-           b = Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.ARGB_8888);
+           b = Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.ARGB_8888);*/
             ImageView img = (ImageView) findViewById(R.id.imageView);
             img.setImageBitmap(b);
         } catch (FileNotFoundException e) {

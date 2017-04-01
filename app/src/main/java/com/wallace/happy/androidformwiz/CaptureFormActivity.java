@@ -12,7 +12,11 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
@@ -149,7 +153,7 @@ public class CaptureFormActivity extends AppCompatActivity {
                 String recognizedText="";
                 List<String> result = processForm();
                 for(int i = 0; i<result.size();i++)
-                    recognizedText+=result.get(i);
+                    recognizedText+=removeNewLine(result.get(i));
                 insertText(recognizedText);
 
                 ImageView imageView = (ImageView) findViewById(R.id.imageView);
@@ -164,14 +168,18 @@ public class CaptureFormActivity extends AppCompatActivity {
         }
     }
 
-    List<RotatedRect> getInflatedBoxesFromdB(double scaleFactor){
+    private String removeNewLine(String s) {
+        return s.replace("\n", "").replace("\r", "") + "\n";
+    }
+
+    List<RotatedRect> getInflatedBoxesFromdB(double scaleFactorX, double scaleFactorY){
         //get details from DB
         Cursor c = db.getData(id);
         c.moveToFirst();
         name = c.getString(c.getColumnIndex("Name"));
         path = c.getString(c.getColumnIndex("ImageSource"));
         int nBoxes = c.getInt(c.getColumnIndex("boxes"));
-        return  db.getBigBoxes(id, nBoxes,scaleFactor);
+        return  db.getBigBoxes(id, nBoxes,scaleFactorX,scaleFactorY);
     }
 
     Size getSizeFromdB(){
@@ -202,7 +210,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         //scale to same as original
         Imgproc.resize(tmp, worker, dsize);
         //get box info
-        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.5);
+        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.5, 1.75);
         Log.d(TAG, "boxes" + boxes.get(0).toString());
         //Draw on
         //tmp = ih.drawSquares(boxes, tmp);
@@ -210,6 +218,20 @@ public class CaptureFormActivity extends AppCompatActivity {
         //Utils.matToBitmap(tmp, bitmap);
 
         List<String> result = new ArrayList<>(boxes.size());
+
+        //set up tess
+
+        String lang = "eng";//for which the language data exists, usually "eng"
+        tesseract.init(FileManager.STORAGE_PATH, lang);
+        //only block caps ALIOBHIME
+        tesseract.setVariable("tessedit_char_whitelist","ABCDEFGHIJKLMNOPQRSTUVXYZ");
+
+        //get current view
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View v = inflater.inflate(R.layout.activity_capture_form, null);
+        LinearLayout myRoot = (LinearLayout) v.findViewById(R.id.root);
+
+        //myRoot.addView(a);
          //for each box crop and feed to OCR
         for (int i = 0; i < boxes.size(); i++) {
             Log.d(TAG, "box - " + i + " -- " + boxes.get(i).toString());
@@ -223,23 +245,37 @@ public class CaptureFormActivity extends AppCompatActivity {
             if(innerbox.size.area()>0) {
                 curr = ih.rotAndCrop(innerbox, curr);
             }
-            //read
+            //convert to bit
             Bitmap currBit = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(curr, currBit);
+
+            //read
             String found = readOCR(currBit);
             Log.d(TAG, i + " - " + found);
             result.add(i, found);
+            //Add to screen
+            // Add text
+            TextView tv = new TextView(this);
+            tv.setText(found);
+            myRoot.addView(tv);
+            //Add image
+            ImageView iv = new ImageView(this);
+            iv.setImageBitmap(currBit);
+            myRoot.addView(iv);
+
         }
+        tesseract.end();
+        // Display the view
+        setContentView(v);
         return result;
     }
 
+    TessBaseAPI tesseract = new TessBaseAPI();
     String readOCR(Bitmap bitmap){
-        TessBaseAPI tesseract = new TessBaseAPI();
-        String lang = "eng";//for which the language data exists, usually "eng"
-        tesseract.init(FileManager.STORAGE_PATH, lang);
+
         tesseract.setImage(bitmap);
         String recognizedText = tesseract.getUTF8Text();
-        tesseract.end();
+
 
         return recognizedText;
     }
