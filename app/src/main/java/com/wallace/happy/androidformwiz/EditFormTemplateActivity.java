@@ -175,10 +175,10 @@ public class EditFormTemplateActivity extends AppCompatActivity {
 
         Imgproc.findContours(gray, contours, new Mat(), CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
 
-        Imgproc.drawContours(
-                image, contours,
-                -1, // draw all contours
-                new Scalar(0, 0, 255, 0));
+        //Imgproc.drawContours(
+          //      image, contours,
+            //    -1, // draw all contours
+              //  new Scalar(0, 0, 255, 0));
        // Log.v(TAG, contours.toString());
 
         // Test contours

@@ -32,6 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Vector;
 
 import com.plug.utils.FileManager;
 
@@ -39,13 +40,21 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
+import org.opencv.core.Point;
 import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import static com.wallace.happy.androidformwiz.SelectWorkingFormActivity.FORM_REF;
+import static org.opencv.core.Core.NORM_MINMAX;
+import static org.opencv.core.CvType.CV_8UC1;
+import static org.opencv.core.CvType.CV_8UC3;
 
 public class CaptureFormActivity extends AppCompatActivity {
 
@@ -110,7 +119,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         manager.writeRawToSD(FileManager.TESSERACT_PATH + "eng.traineddata",
                 "eng.traineddata");
         //open camera
-        openCamera();
+        openGallery();
     }
 
 
@@ -130,19 +139,20 @@ public class CaptureFormActivity extends AppCompatActivity {
             Uri uri = data.getData();
             try{
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                Log.d(TAG, "got Bitmap");
+                String recognizedText="";
+                List<String> result = processForm();
+                for(int i = 0; i<result.size();i++)
+                    recognizedText+=removeNewLine(result.get(i));
+                insertText(recognizedText);
+
+                ImageView imageView = (ImageView) findViewById(R.id.imageView);
+                imageView.setImageBitmap(bitmap);
 
             } catch (IOException e) {
+                Log.d(TAG, "no Bitmap");
                 e.printStackTrace();
             }
-
-            String recognizedText="";
-            List<String> result = processForm();
-            for(int i = 0; i<result.size();i++)
-                recognizedText+=result.get(i);
-            insertText(recognizedText);
-
-            ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            imageView.setImageBitmap(bitmap);
         }
         else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK){
             File f = new File(mCurrentPhotoPath);
@@ -197,7 +207,7 @@ public class CaptureFormActivity extends AppCompatActivity {
     private List<String> processForm() {
         //convert to Mat
         Log.d(TAG, "page coord coming up");
-        Mat tmp = new Mat(bitmap.getHeight(), bitmap.getWidth(), CvType.CV_8UC1);
+        Mat tmp = new Mat(bitmap.getHeight(), bitmap.getWidth(), CV_8UC1);
         Utils.bitmapToMat(bitmap, tmp);
         //find outer size!!! and crop
         RotatedRect rOutter = ih.findSquaure(tmp, bitmap.getWidth(), bitmap.getHeight());
@@ -206,7 +216,7 @@ public class CaptureFormActivity extends AppCompatActivity {
 
         //Get template bitmap size
         Size dsize = getSizeFromdB();
-        Mat worker = new Mat((int)dsize.height, (int)dsize.width, CvType.CV_8UC1);
+        Mat worker = new Mat((int)dsize.height, (int)dsize.width, CV_8UC1);
         //scale to same as original
         Imgproc.resize(tmp, worker, dsize);
         //get box info
@@ -245,6 +255,66 @@ public class CaptureFormActivity extends AppCompatActivity {
             if(innerbox.size.area()>0) {
                 curr = ih.rotAndCrop(innerbox, curr);
             }
+            //make grayscale
+            Imgproc.cvtColor(curr, curr, Imgproc.COLOR_BGR2GRAY);
+            //histogram
+            // Compute histogram
+            Vector<Mat> bgr_planes = new Vector<Mat>();
+            Core.split(curr, bgr_planes);
+            int bins = 256/4;
+            MatOfInt histSize = new MatOfInt(bins);
+            final MatOfFloat histRange = new MatOfFloat(0f, 256f);
+            boolean accumulate = false;
+            Mat b_hist = new  Mat();
+            Imgproc.calcHist(bgr_planes, new MatOfInt(0),new Mat(), b_hist, histSize, histRange, accumulate);
+            Log.v(TAG,"hist size" + b_hist.size().toString());
+            //display hist
+            Mat m = new Mat(b_hist.size(),CV_8UC1);
+            Scalar colour = new Scalar(0,0,255);
+            Point pt1 = new Point();
+            Point pt2 = new Point();
+            // Draw the histograms for B, G and R
+            int hist_w = 512;
+            int hist_h = 400;
+
+            int bin_w =  hist_w/bins ;
+            Scalar black = new Scalar( 0,0,0);
+            Mat histImage = new Mat( hist_h, hist_w, CV_8UC3, black );
+
+            /// Normalize the result to [ 0, histImage.rows ]
+            Core.normalize(b_hist, b_hist, 0, histImage.rows(), NORM_MINMAX, -1);
+
+            /// Draw the histogram
+            Scalar red = new Scalar( 255, 0, 0);
+            for( int index = 1; index < bins; index++ )
+            {
+                int a  = (int)b_hist.get(index-1,0)[0];
+                int b  = (int)b_hist.get(index,0)[0];
+                if(index < bins-1) {
+                    int c = (int) b_hist.get(index + 1, 0)[0];
+                    if(a<b &&b>c){
+
+                        Log.v(TAG, "peak" + index + " - " + b);
+                    }
+
+                }
+                pt1 = new Point(bin_w*(index-1),hist_h - a);
+                pt2 = new Point(bin_w*(index),hist_h - b);
+
+                Imgproc.line( histImage, pt1 ,pt2, red, 2, 8, 0  );
+
+
+            }
+            //image of hist
+            Bitmap bmp2 = null;
+            bmp2 = Bitmap.createBitmap(histImage.cols(), histImage.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(histImage, bmp2);//'CV_8UC1', 'CV_8UC3' or 'CV_8UC4'.
+            ImageView hs = new ImageView(this);
+            hs.setImageBitmap(bmp2);
+            myRoot.addView(hs);
+
+            //binary
+
             //convert to bit
             Bitmap currBit = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(curr, currBit);
@@ -322,5 +392,17 @@ public class CaptureFormActivity extends AppCompatActivity {
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = image.getAbsolutePath();
         return image;
+    }
+    /**
+     *  Called when the user clicks the gallery button
+     * Opens Gallery so they can select an image
+     * */
+    public void openGallery() {
+        Intent intent = new Intent();
+        // Show only images, no videos or anything else
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        // Always show the chooser (if there are multiple options available)
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST);
     }
 }

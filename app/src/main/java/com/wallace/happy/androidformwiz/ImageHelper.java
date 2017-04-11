@@ -98,16 +98,18 @@ public class ImageHelper     {
     }
 
     RotatedRect findSquaure(Mat image,int w, int h ) {
-        // blur will enhance edge detection
-        Mat gray0 = new Mat(h, w, CvType.CV_8UC1);
-        Imgproc.medianBlur(image, gray0, 9);
-        Mat gray = new Mat();
-        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-        List<RotatedRect> squares = new ArrayList<RotatedRect>();
-        Imgproc.Canny(gray0, gray, 20, 80); //
+        Mat gray = new Mat(h, w, CvType.CV_8UC1);
+        Imgproc.cvtColor(image, gray, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.medianBlur(gray, gray, 9);
+
+        List<MatOfPoint> contours = new LinkedList<MatOfPoint>();
+        List<RotatedRect> squares = new LinkedList<RotatedRect>();
+        Imgproc.Canny(gray, gray, 20, 80); //
         Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
+
         Imgproc.findContours(gray, contours, new Mat(), CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
+
         RotatedRect max = new RotatedRect();
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
@@ -123,8 +125,8 @@ public class ImageHelper     {
             // area may be positive or negative - in accordance with the
             // contour orientation
             if (
-                    approx.toArray().length == 4 &&
-                            abs(Imgproc.contourArea(approx)) > 200
+                    approx.toArray().length >= 4 &&
+                            abs(Imgproc.contourArea(approx)) > 4000
                     ) {
                 double maxCosine = 0;
 
