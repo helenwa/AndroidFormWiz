@@ -261,7 +261,7 @@ public class CaptureFormActivity extends AppCompatActivity {
             // Compute histogram
             Vector<Mat> bgr_planes = new Vector<Mat>();
             Core.split(curr, bgr_planes);
-            int bins = 256/4;
+            int bins = 256/8;
             MatOfInt histSize = new MatOfInt(bins);
             final MatOfFloat histRange = new MatOfFloat(0f, 256f);
             boolean accumulate = false;
@@ -286,6 +286,9 @@ public class CaptureFormActivity extends AppCompatActivity {
 
             /// Draw the histogram
             Scalar red = new Scalar( 255, 0, 0);
+            int peaks[] = {0,0};
+            int peakVal[] = {0,0};
+            int pkI =0;
             for( int index = 1; index < bins; index++ )
             {
                 int a  = (int)b_hist.get(index-1,0)[0];
@@ -293,7 +296,21 @@ public class CaptureFormActivity extends AppCompatActivity {
                 if(index < bins-1) {
                     int c = (int) b_hist.get(index + 1, 0)[0];
                     if(a<b &&b>c){
-
+                        if(pkI<2){
+                            peaks[pkI]=index;
+                            peakVal[pkI]= b;
+                            pkI++;
+                        }
+                        else{
+                            int rel = 0;
+                            if(peakVal[1]>peakVal[0]) {
+                                rel=1;
+                                peaks[0]= peaks[1];
+                                peakVal[0]= peakVal[1];
+                            }
+                            peaks[1]=index;
+                            peakVal[1]= b;
+                        }
                         Log.v(TAG, "peak" + index + " - " + b);
                     }
 
@@ -305,6 +322,8 @@ public class CaptureFormActivity extends AppCompatActivity {
 
 
             }
+
+
             //image of hist
             Bitmap bmp2 = null;
             bmp2 = Bitmap.createBitmap(histImage.cols(), histImage.rows(), Bitmap.Config.ARGB_8888);
@@ -314,13 +333,24 @@ public class CaptureFormActivity extends AppCompatActivity {
             myRoot.addView(hs);
 
             //binary
+            double threshold = 8*(peaks[1]+peaks[0])/2;
+            Mat thresMat = new Mat();
+            Imgproc.threshold(curr, thresMat,threshold,255,0);
+            //threshold(Mat src, Mat dst, double thresh, double maxval, int type)
+            Bitmap bmpt = null;
+            bmpt = Bitmap.createBitmap(thresMat.cols(), thresMat.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(thresMat, bmpt);//'CV_8UC1', 'CV_8UC3' or 'CV_8UC4'.
+            ImageView th = new ImageView(this);
+            th.setImageBitmap(bmpt);
+            myRoot.addView(th);
+
 
             //convert to bit
             Bitmap currBit = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(curr, currBit);
 
             //read
-            String found = readOCR(currBit);
+            String found = readOCR(bmpt);//currBit);
             Log.d(TAG, i + " - " + found);
             result.add(i, found);
             //Add to screen
