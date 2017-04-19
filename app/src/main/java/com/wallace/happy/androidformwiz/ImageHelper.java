@@ -81,7 +81,7 @@ public class ImageHelper     {
         Size rect_size = maxRect.size;
         // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
         if (maxRect.angle < -45.) {
-            Log.v("ImgaeHelper", "swapping h and w");
+            Log.v("ImageHelper", "swapping h and w");
             angle += 90.0;
             //swap(rect_size.width, rect_size.height);
             rect_size = new Size(rect_size.height, rect_size.width);
@@ -94,6 +94,8 @@ public class ImageHelper     {
         double x = maxRect.center.x - (rect_size.width/2);
         double y = maxRect.center.y - (rect_size.height/2);
         Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
+        Log.v("ImageHelper", "rot" + rotated.size().toString());
+        Log.v("ImageHelper", "rect" + roi.toString());
         return  new Mat(rotated, roi);
     }
 
@@ -113,7 +115,7 @@ public class ImageHelper     {
         RotatedRect max = new RotatedRect();
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
-
+        int minA = w*h/4;
         for (int i = 0; i < contours.size(); i++) {
             // approximate contour with accuracy proportional
             // to the contour perimeter
@@ -126,7 +128,7 @@ public class ImageHelper     {
             // contour orientation
             if (
                     approx.toArray().length >= 4 &&
-                            abs(Imgproc.contourArea(approx)) > 4000
+                            abs(Imgproc.contourArea(approx)) > minA
                     ) {
                 double maxCosine = 0;
 

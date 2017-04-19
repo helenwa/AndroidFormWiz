@@ -220,7 +220,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         //scale to same as original
         Imgproc.resize(tmp, worker, dsize);
         //get box info
-        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.5, 1.75);
+        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.25, 1.75);
         Log.d(TAG, "boxes" + boxes.get(0).toString());
         //Draw on
         //tmp = ih.drawSquares(boxes, tmp);
@@ -267,7 +267,6 @@ public class CaptureFormActivity extends AppCompatActivity {
             boolean accumulate = false;
             Mat b_hist = new  Mat();
             Imgproc.calcHist(bgr_planes, new MatOfInt(0),new Mat(), b_hist, histSize, histRange, accumulate);
-            Log.v(TAG,"hist size" + b_hist.size().toString());
             //display hist
             Mat m = new Mat(b_hist.size(),CV_8UC1);
             Scalar colour = new Scalar(0,0,255);
@@ -311,16 +310,11 @@ public class CaptureFormActivity extends AppCompatActivity {
                             peaks[1]=index;
                             peakVal[1]= b;
                         }
-                        Log.v(TAG, "peak" + index + " - " + b);
                     }
-
                 }
                 pt1 = new Point(bin_w*(index-1),hist_h - a);
                 pt2 = new Point(bin_w*(index),hist_h - b);
-
                 Imgproc.line( histImage, pt1 ,pt2, red, 2, 8, 0  );
-
-
             }
 
 

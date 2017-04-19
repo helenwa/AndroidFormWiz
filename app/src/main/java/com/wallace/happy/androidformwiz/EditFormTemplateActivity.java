@@ -184,6 +184,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
 
+        int minA = b.getHeight() * b.getWidth() /3400;
         for (int i = 0; i < contours.size(); i++) {
             // approximate contour with accuracy proportional
             // to the contour perimeter
@@ -198,8 +199,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             double sz = abs(Imgproc.contourArea(approx));
             if (
                     approx.toArray().length >= 4 &&
-                            (stripLarge || sz > 2000 ) && //big
-                            (!stripLarge || (sz < 4000000 && sz > 6000))//small
+                            (stripLarge || sz > minA ) && //big
+                            (!stripLarge || (sz < 4000000 && sz > minA))//small
                     ) {
 
                 double maxCosine = 0;
@@ -247,13 +248,17 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     boolean isNew(RotatedRect r,List<RotatedRect> list){
         double x = r.center.x;
         double y = r.center.y;
+        double sz = r.size.area();
         for(int i=0;i<list.size();i++){
             RotatedRect curr = list.get(i);
-            if(
+            double currA = curr.size.area();
+            if(     //within existing
                     x > (curr.center.x - (curr.size.width/2)) &&
                     x < (curr.center.x + (curr.size.width/2)) &&
                     y > (curr.center.y - (curr.size.height/2)) &&
-                    y < (curr.center.y + (curr.size.height/2))
+                    y < (curr.center.y + (curr.size.height/2)) &&
+                            //comerable area
+                    (sz*1.2 > currA && sz*0.8 <currA)
                     )
                 return false;
         }
