@@ -184,7 +184,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
 
-        int minA = b.getHeight() * b.getWidth() /3400;
+        int minA = b.getHeight() * b.getWidth() /3500;
+        int maxA = b.getHeight() * b.getWidth() /4;
         for (int i = 0; i < contours.size(); i++) {
             // approximate contour with accuracy proportional
             // to the contour perimeter
@@ -200,24 +201,32 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             if (
                     approx.toArray().length >= 4 &&
                             (stripLarge || sz > minA ) && //big
-                            (!stripLarge || (sz < 4000000 && sz > minA))//small
+                            (!stripLarge || (sz < maxA && sz > minA))//small
                     ) {
 
                 double maxCosine = 0;
                 for (int j = 2; j < 5; j++) {
                     double cosine = abs(angle(approx.toArray()[j % 4], approx.toArray()[j - 2], approx.toArray()[j - 1]));
-                    //Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
                     maxCosine = max(maxCosine, cosine);
                 }
 
                 if (maxCosine < 0.5) {//started at  0.3
-
                     RotatedRect minRect = Imgproc.minAreaRect(contour2f);
                     Point rect_points[] = new Point[4];
                     minRect.points(rect_points);
-
-
-                    squares.add(minRect.clone());
+                    double angle = minRect.angle;
+                    Size rect_size = minRect.size;
+                    //sort angle
+                    if (minRect.angle < -45.) {
+                        angle += 90.0;
+                        rect_size = new Size(rect_size.height, rect_size.width);
+                        minRect = new RotatedRect(minRect.center, rect_size, angle);
+                    }
+                    rect_size = minRect.size;
+                    //check ratio
+                    if( rect_size.height<rect_size.width ||  !stripLarge){
+                        squares.add(minRect.clone());
+                    }
                 }
             }
         }
