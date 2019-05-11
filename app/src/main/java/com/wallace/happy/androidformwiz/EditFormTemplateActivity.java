@@ -64,6 +64,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     static final int CV_RETR_LIST_1 = 1;
     static final int CV_CHAIN_APPROX_SIMPLE_1 = 2;
     Mat tmp;
+    Mat display;
     Mat processed;
     private ImageHelper ih = new ImageHelper();
 
@@ -149,6 +150,7 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     private void processImage() {
         //convert
         tmp = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
+        display = new Mat(b.getHeight(), b.getWidth(), CvType.CV_8UC1);
         Utils.bitmapToMat(b, tmp);
         //find rectangles
         List<RotatedRect> squares = findSquaures(tmp, false);
@@ -160,6 +162,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         //convert Mat to bitmap
         b = Bitmap.createBitmap(processed.cols(), processed.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processed, b);
+        //b = Bitmap.createBitmap(display.cols(), display.rows(), Bitmap.Config.ARGB_8888);
+        //Utils.matToBitmap(display, b);
     }
 
     List<RotatedRect> findSquaures(Mat image, boolean stripLarge) {
@@ -168,23 +172,23 @@ public class EditFormTemplateActivity extends AppCompatActivity {
         Imgproc.medianBlur(gray, gray, 9);
 
         List<MatOfPoint> contours = new LinkedList<MatOfPoint>();
+        List<MatOfPoint> approxContours = new LinkedList<MatOfPoint>();
         List<RotatedRect> squares = new LinkedList<RotatedRect>();
         Imgproc.Canny(gray, gray, 20, 80); //
+        display = gray.clone();
         Point pnt = new Point(-1, -1);
         Imgproc.dilate(gray, gray, new Mat(), pnt, 1);
 
         Imgproc.findContours(gray, contours, new Mat(), CV_RETR_LIST_1, CV_CHAIN_APPROX_SIMPLE_1);
 
-        //Imgproc.drawContours(
-          //      image, contours,
-            //    -1, // draw all contours
-              //  new Scalar(0, 0, 255, 0));
-       // Log.v(TAG, contours.toString());
-
+        /*Imgproc.drawContours(
+               image, contours,
+                -1, // draw all contours
+                new Scalar(0, 0, 255, 0));*/
         // Test contours
         MatOfPoint2f approx = new MatOfPoint2f();
 
-        int minA = b.getHeight() * b.getWidth() /3500;
+        int minA = b.getHeight() * b.getWidth()/2000;// /3500;
         int maxA = b.getHeight() * b.getWidth() /4;
         for (int i = 0; i < contours.size(); i++) {
             // approximate contour with accuracy proportional
@@ -194,6 +198,9 @@ public class EditFormTemplateActivity extends AppCompatActivity {
             Imgproc.approxPolyDP(contour2f, approx, Imgproc.arcLength(contour2f, true) * 0.005, true);
            // Log.v(TAG, i + "  " + approx.toArray().length + "  " + abs(Imgproc.contourArea(approx)) + "  " + Imgproc.isContourConvex(contours.get(i)));
 
+            MatOfPoint approxf1 = new MatOfPoint();
+            approx.convertTo(approxf1, CvType.CV_32S);
+            approxContours.add(approxf1);
             // Note: absolute value of an area is used because
             // area may be positive or negative - in accordance with the
             // contour orientation
@@ -224,12 +231,17 @@ public class EditFormTemplateActivity extends AppCompatActivity {
                     }
                     rect_size = minRect.size;
                     //check ratio
-                    if( rect_size.height<rect_size.width ||  !stripLarge){
+                   // if( rect_size.height<rect_size.width ||  !stripLarge){
                         squares.add(minRect.clone());
-                    }
+                    //}
                 }
             }
         }
+       /*Imgproc.drawContours(
+                image, approxContours,
+                -1, // draw all contours
+                new Scalar(255, 0, 0, 0));*/
+
         if(stripLarge) {
             Log.v(TAG, "NS, " + squares.size());
             return findUniqueSquaures(squares);
@@ -241,6 +253,8 @@ public class EditFormTemplateActivity extends AppCompatActivity {
     List<RotatedRect> findUniqueSquaures(List<RotatedRect> allFound){
         List<RotatedRect> unique = new LinkedList<RotatedRect>();
         //sort by size
+        if(allFound.size()<1)
+            return allFound;
         Collections.sort(allFound);
         unique.add(0,allFound.get(0).clone());
         for(int i=1;i<allFound.size();i++){

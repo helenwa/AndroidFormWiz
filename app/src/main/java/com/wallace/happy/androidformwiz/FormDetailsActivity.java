@@ -139,6 +139,7 @@ public class FormDetailsActivity extends AppCompatActivity {
         String message = editText.getText().toString();
         intent.putExtra(EXTRA_MESSAGE, message);
         */
+        intent.putExtra(FORM_REF, id);
         startActivity(intent);
     }
 }

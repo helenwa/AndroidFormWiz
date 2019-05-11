@@ -72,6 +72,46 @@ public class ImageHelper     {
         return image;
     }
 
+    Mat drawContours(List<RotatedRect> squares, Mat image) {
+        if (squares.size() == 0) {
+            return image;
+        }
+        Mat cropped = new Mat();
+        RotatedRect maxRect = squares.get(0);
+        double maxArea = 0;
+        for (int i = 0; i < squares.size(); i++) {
+
+            RotatedRect minRect = squares.get(i);
+            Point rect_points[] = new Point[4];
+            minRect.points(rect_points);
+            for (int j = 0; j < 4; j++) {
+                Scalar scal = new Scalar(0, 255, 0);// RGB
+                Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 3, 8, 0 );
+            }
+        }
+        return image;
+    }
+
+    Mat drawPolygons(List<RotatedRect> squares, Mat image) {
+        if (squares.size() == 0) {
+            return image;
+        }
+        Mat cropped = new Mat();
+        RotatedRect maxRect = squares.get(0);
+        double maxArea = 0;
+        for (int i = 0; i < squares.size(); i++) {
+
+            RotatedRect minRect = squares.get(i);
+            Point rect_points[] = new Point[4];
+            minRect.points(rect_points);
+            for (int j = 0; j < 4; j++) {
+                Scalar scal = new Scalar(0, 255, 0);// RGB
+                Imgproc.line( image, rect_points[j], rect_points[(j+1)%4], scal, 3, 8, 0 );
+            }
+        }
+        return image;
+    }
+
     Mat rotAndCrop(RotatedRect maxRect, Mat image) {
         // matrices we'll use
         Mat M;
@@ -92,7 +132,51 @@ public class ImageHelper     {
         warpAffine(image, rotated, M, image.size(), INTER_CUBIC);
         // crop the resulting image
         double x = maxRect.center.x - (rect_size.width/2);
+        if (x<0) x=0;
+        if((x + rect_size.width)>rotated.size().width)
+            rect_size.width = rotated.size().width - x;
         double y = maxRect.center.y - (rect_size.height/2);
+        if (y<0) y=0;
+        if((y + rect_size.height)>rotated.size().height)
+            rect_size.height = rotated.size().height - y;
+
+        Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
+        Log.v("ImageHelper", "rot" + rotated.size().toString());
+        Log.v("ImageHelper", "rect" + roi.toString());
+        return  new Mat(rotated, roi);
+    }
+
+    Mat rotAndCrop2(RotatedRect maxRect, Mat image) {
+        // matrices we'll use
+        Mat M;
+        Mat rotated = new Mat();
+        // get angle and size from the bounding box
+        double angle = maxRect.angle;
+        Size rect_size = maxRect.size;
+        // thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
+        if (maxRect.angle < -45.) {
+            Log.v("ImageHelper", "swapping h and w");
+            angle += 90.0;
+            //swap(rect_size.width, rect_size.height);
+            rect_size = new Size(rect_size.height, rect_size.width);
+        }
+        // get the rotation matrix
+        M = getRotationMatrix2D(maxRect.center, angle, 1.0);
+        // perform the affine transformation
+        warpAffine(image, rotated, M, image.size(), INTER_CUBIC);
+        // crop the resulting image
+        double trimAmount = rect_size.height/25;
+        double x = maxRect.center.x - (rect_size.width/2) + trimAmount;
+        if (x<0) x=0;
+        if((x + rect_size.width)>rotated.size().width)
+            rect_size.width = rotated.size().width - x;
+        double y = maxRect.center.y - (rect_size.height/2) + trimAmount;
+        if (y<0) y=0;
+        if((y + rect_size.height)>rotated.size().height)
+            rect_size.height = rotated.size().height - y;
+        rect_size.height = rect_size.height - (2*trimAmount);
+        rect_size.width = rect_size.width - (2*trimAmount);
+
         Rect roi = new Rect( (int)x, (int)y, (int)rect_size.width, (int)rect_size.height);
         Log.v("ImageHelper", "rot" + rotated.size().toString());
         Log.v("ImageHelper", "rect" + roi.toString());
@@ -128,19 +212,23 @@ public class ImageHelper     {
             // contour orientation
             if (
                     approx.toArray().length >= 4 &&
-                            abs(Imgproc.contourArea(approx)) > minA
+                            abs(Imgproc.contourArea(approx)) > 400
                     ) {
                 double maxCosine = 0;
 
                 for (int j = 2; j < 5; j++) {
                     double cosine = abs(angle(approx.toArray()[j % 4], approx.toArray()[j - 2], approx.toArray()[j - 1]));
-                    //Log.v(TAG, i + ",  " + cosine + ",  " + approx.toArray().toString());
                     maxCosine = max(maxCosine, cosine);
                 }
 
                 if (maxCosine < 0.5) {
 
                     RotatedRect minRect = Imgproc.minAreaRect(contour2f);
+                    if (minRect.angle < -45.) {
+                        Double angle = minRect.angle + 90.0;
+                        Size rect_size = new Size(minRect.size.height, minRect.size.width);
+                        minRect = new RotatedRect(minRect.center, rect_size, angle);
+                    }
 
                     Point rect_points[] = new Point[4];
                     minRect.points(rect_points);

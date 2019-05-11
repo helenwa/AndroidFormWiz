@@ -7,6 +7,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Layout;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -41,6 +42,7 @@ public class SelectWorkingFormActivity extends AppCompatActivity {
     // Create a message handling object as an anonymous class.
     private AdapterView.OnItemClickListener mMessageClickedHandler = new AdapterView.OnItemClickListener() {
         public void onItemClick(AdapterView parent, View v, int position, long id) {
+            Log.v("LIST", "Put"  + id);
             Intent intent = new Intent(SelectWorkingFormActivity.this, FormDetailsActivity.class);
             //*      To Pass id to new intent
             intent.putExtra(FORM_REF, id);

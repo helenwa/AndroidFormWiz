@@ -102,7 +102,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_form);
         Intent intent = getIntent();
-        id = getIntent().getLongExtra(FORM_REF, 0) + 1;
+        id = getIntent().getLongExtra(FORM_REF, 0);
 
         if (!OpenCVLoader.initDebug()) {
             // Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
@@ -189,6 +189,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         name = c.getString(c.getColumnIndex("Name"));
         path = c.getString(c.getColumnIndex("ImageSource"));
         int nBoxes = c.getInt(c.getColumnIndex("boxes"));
+        Log.v(TAG, "ID" + id + "n " + nBoxes);
         return  db.getBigBoxes(id, nBoxes,scaleFactorX,scaleFactorY);
     }
 
@@ -220,7 +221,7 @@ public class CaptureFormActivity extends AppCompatActivity {
         //scale to same as original
         Imgproc.resize(tmp, worker, dsize);
         //get box info
-        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.25, 1.75);
+        List<RotatedRect> boxes = getInflatedBoxesFromdB(1.25, 2);
         Log.d(TAG, "boxes" + boxes.get(0).toString());
         //Draw on
         //tmp = ih.drawSquares(boxes, tmp);
@@ -233,8 +234,8 @@ public class CaptureFormActivity extends AppCompatActivity {
 
         String lang = "eng";//for which the language data exists, usually "eng"
         tesseract.init(FileManager.STORAGE_PATH, lang);
-        //only block caps ALIOBHIME
-        tesseract.setVariable("tessedit_char_whitelist","ABCDEFGHIJKLMNOPQRSTUVXYZ");
+        //only block caps and numerals
+        tesseract.setVariable("tessedit_char_whitelist","ABCDEFGHIJKLMNOPQRSTUVXYZ1234567890");
 
         //get current view
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -249,11 +250,20 @@ public class CaptureFormActivity extends AppCompatActivity {
             int h = (int)boxes.get(i).size.height;
             int w = (int)boxes.get(i).size.width;
             Mat curr = ih.rotAndCrop(boxes.get(i),worker);
+            //show
+            //image of hist
+            Bitmap bmpseg = null;
+            bmpseg = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(curr, bmpseg);//'CV_8UC1', 'CV_8UC3' or 'CV_8UC4'.
+            ImageView seg = new ImageView(this);
+            seg.setImageBitmap(bmpseg);
+            myRoot.addView(seg);
+
             RotatedRect innerbox = ih.findSquaure(curr,w,h);
             Log.d(TAG, "inner " + innerbox.toString());
             //add if??
             if(innerbox.size.area()>0) {
-                curr = ih.rotAndCrop(innerbox, curr);
+                curr = ih.rotAndCrop2(innerbox, curr);
             }
             //make grayscale
             Imgproc.cvtColor(curr, curr, Imgproc.COLOR_BGR2GRAY);
@@ -261,7 +271,7 @@ public class CaptureFormActivity extends AppCompatActivity {
             // Compute histogram
             Vector<Mat> bgr_planes = new Vector<Mat>();
             Core.split(curr, bgr_planes);
-            int bins = 256/8;
+            int bins = 256/16;
             MatOfInt histSize = new MatOfInt(bins);
             final MatOfFloat histRange = new MatOfFloat(0f, 256f);
             boolean accumulate = false;
@@ -327,7 +337,7 @@ public class CaptureFormActivity extends AppCompatActivity {
             myRoot.addView(hs);
 
             //binary
-            double threshold = 8*(peaks[1]+peaks[0])/2;
+            double threshold = 16*(peaks[1]+peaks[0])/2;
             Mat thresMat = new Mat();
             Imgproc.threshold(curr, thresMat,threshold,255,0);
             //threshold(Mat src, Mat dst, double thresh, double maxval, int type)
@@ -338,13 +348,8 @@ public class CaptureFormActivity extends AppCompatActivity {
             th.setImageBitmap(bmpt);
             myRoot.addView(th);
 
-
-            //convert to bit
-            Bitmap currBit = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(curr, currBit);
-
             //read
-            String found = readOCR(bmpt);//currBit);
+            String found = readOCR(bmpt);
             Log.d(TAG, i + " - " + found);
             result.add(i, found);
             //Add to screen
@@ -352,6 +357,21 @@ public class CaptureFormActivity extends AppCompatActivity {
             TextView tv = new TextView(this);
             tv.setText(found);
             myRoot.addView(tv);
+
+
+            //convert to bit
+            Bitmap currBit = Bitmap.createBitmap(curr.cols(), curr.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(curr, currBit);
+
+            //read
+            String found2 = readOCR(currBit);
+            Log.d(TAG, i + " - " + found);
+            result.add(i, found);
+            //Add to screen
+            // Add text
+            TextView tv2 = new TextView(this);
+            tv2.setText(found2);
+            myRoot.addView(tv2);
             //Add image
             ImageView iv = new ImageView(this);
             iv.setImageBitmap(currBit);
